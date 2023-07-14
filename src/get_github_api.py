@@ -163,6 +163,7 @@ class github_api:
     @staticmethod
     def check_rate_limit(token):
         url = "https://api.github.com/rate_limit"
-        headers = {'Authorization': 'Bearer ' + token}
+        headers = {"Accept": "application/vnd.github.v3.star+json"
+            ,'Authorization': 'Bearer ' + token}
         response = requests.get(url, headers=headers)
         return response.json()
