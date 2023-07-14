@@ -1,0 +1,36 @@
+#!/bin/bash
+
+save_path="/Users/Jumma/github_repo/github_api_extractor/resources/tsdetect/test_smell_hive"
+csv_file="/Users/Jumma/github_repo/github_api_extractor/resources/tsdetect/all_test_smell/output.csv"
+all_opened="/Users/Jumma/github_repo/github_api_extractor/resources/tsdetect/all_test_smell/all_opened.csv"
+all_closed="/Users/Jumma/github_repo/github_api_extractor/resources/tsdetect/all_test_smell/all_closed.csv"
+
+# Collect file names in the directory
+file_names=()
+while IFS= read -r -d '' file; do
+    file_names+=("$(basename "$file")")
+done < <(find "$save_path" -type f -print0)
+
+# Sort file names based on condition
+opened_file_names=()
+closed_file_names=()
+for file_name in "${file_names[@]}"; do
+    if [[ $file_name == *"_opened_"* ]]; then
+        opened_file_names+=("$file_name")
+    elif [[ $file_name == *"_closed_"* ]]; then
+        closed_file_names+=("$file_name")
+    fi
+done
+
+# Write closed file names to CSV
+{
+    printf "%s\n" "${opened_file_names[@]}"  # Opened file names
+} > "$all_opened"
+
+# Write open file names to CSV
+{
+    printf "%s\n" "${closed_file_names[@]}"  # Closed file names
+} > "$all_closed"
+
+echo "Opened file names written to $all_opened"
+echo "Closed file names written to $all_closed"
