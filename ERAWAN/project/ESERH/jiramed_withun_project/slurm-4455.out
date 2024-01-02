@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/project/ESERH/jiramed_withun_project/script_flink.py", line 12, in <module>
+    from ERAWAN.project.ESERH.jiramed_withun_project.github_api import github_api
+ModuleNotFoundError: No module named 'ERAWAN'
+srun: error: compute1: task 0: Exited with exit code 1

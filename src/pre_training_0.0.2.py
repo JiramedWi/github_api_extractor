@@ -116,20 +116,66 @@ def set_smote(x_y_fit_blind_transform):
     start_time_gmt = time.gmtime(start_time)
     start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
     print("start to set smote at: " + start_time_gmt)
+    count = 0
     for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+        # count loop
+        count += 1
+        # Set SMOTE oversampling
         smote = SMOTE(sampling_strategy='auto', random_state=42)
         x_smote, y_smote = smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
                                               x_y_fit_blind_transform_dict['y_fit'])
-        # Check value is balanced or not
+        # Check value is smoted or not
         if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
                 x_y_fit_blind_transform_dict['y_fit'].shape[0]:
-            print("set Balanced: x value old =" + str(x_y_fit_blind_transform_dict['x_fit'].shape[0]) + "x value new = "
-                  + str(x_smote.shape[0]) + "y value old" + str(x_y_fit_blind_transform_dict['x_fit'].shape[0]) +
-                  " y value new = " + str(y_smote.shape[0]))
-            raise Exception("Not balanced")
+            print("set Balanced: x value old = " + str(
+                x_y_fit_blind_transform_dict['x_fit'].shape[0]) + ", x value new = "
+                  + str(x_smote.shape[0]) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape[0]) +
+                  ", y value new = " + str(y_smote.shape[0]))
+            print("set Balanced: x value old = " + str(
+                x_y_fit_blind_transform_dict['x_fit'].shape) + ", x value new = "
+                  + str(x_smote.shape) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape) +
+                  ", y value new = " + str(y_smote.shape))
+            pass
+        else:
+            raise Exception("It not set smote")
+        # Check ratio of Y_smote
+        class_distribution_train_smote = pd.Series(y_smote).value_counts()
+        print(f"count_y_smote {class_distribution_train_smote}")
+        ratio_class_1_train_smote = class_distribution_train_smote[1] / len(y_smote)
+        ratio_class_0_train_smote = class_distribution_train_smote[0] / len(y_smote)
+        print(f"\nRatio of class '1' in the training smote set: {ratio_class_1_train_smote:.2%}")
+        print(f"\nRatio of class '0' in the training smote set: {ratio_class_0_train_smote:.2%}")
         x_y_fit_blind_transform_dict['x_fit'] = x_smote
         x_y_fit_blind_transform_dict['y_fit'] = y_smote
+        x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
+        x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
+        print(f"Total process: {count}")
     joblib.dump(x_y_fit_blind_transform, f'../resources/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+    end_time = time.time()
+    result_time = end_time - start_time
+    result_time_gmt = time.gmtime(result_time)
+    result_time = time.strftime("%H:%M:%S", result_time_gmt)
+    print(f"Total time: {result_time}")
+    return x_y_fit_blind_transform
+
+
+def normalize_x(x_y_fit_blind_transform, normalize_method):
+    start_time = time.time()
+    start_time_gmt = time.gmtime(start_time)
+    start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
+    print(
+        f"start to normalize at: {start_time_gmt} with {get_var_name(x_y_fit_blind_transform)} normalize method: {normalize_method}")
+    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+        if normalize_method == 'min_max':
+            x_y_fit_blind_transform_dict['x_fit'] = scale_sparse_matrix(x_y_fit_blind_transform_dict['x_fit'])
+            x_y_fit_blind_transform_dict['x_blind_test'] = scale_sparse_matrix(
+                x_y_fit_blind_transform_dict['x_blind_test'])
+        elif normalize_method == 'log':
+            x_y_fit_blind_transform_dict['x_fit'] = log_transform_tfidf(x_y_fit_blind_transform_dict['x_fit'])
+            x_y_fit_blind_transform_dict['x_blind_test'] = log_transform_tfidf(
+                x_y_fit_blind_transform_dict['x_blind_test'])
+    joblib.dump(x_y_fit_blind_transform,
+                f'../resources/normalize_{get_var_name(x_y_fit_blind_transform)}_{normalize_method}_transform_0.0.2.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
@@ -191,6 +237,23 @@ class MachineLearningScript:
                 print(f"start at y_dict name: {y_name}")
                 x_fit, x_blind_test, y_fit, y_blind_test = train_test_split(x_cleaned, y_value, test_size=0.2,
                                                                             stratify=y_value)
+                # Check ratio of Y
+                class_distribution_train = pd.Series(y_fit).value_counts()
+                print(f"count_y {class_distribution_train}")
+                class_distribution_test = pd.Series(y_blind_test).value_counts()
+                print(f"count_y_test {class_distribution_test}")
+                ratio_class_train = len(y_fit) / len(y_value)
+                ratio_class_test = len(y_blind_test) / len(y_value)
+                ratio_class_1_train = class_distribution_train[1] / len(y_fit)
+                ratio_class_1_test = class_distribution_test[1] / len(y_blind_test)
+                ratio_class_0_train = class_distribution_train[0] / len(y_fit)
+                ratio_class_0_test = class_distribution_test[0] / len(y_blind_test)
+                print(f"\nRatio of class in the training set: {ratio_class_train:.2%}")
+                print(f"\nRatio of class in the test set: {ratio_class_test:.2%}")
+                print(f"\nRatio of class '1' in the training set: {ratio_class_1_train:.2%}")
+                print(f"\nRatio of class '0' in the training set: {ratio_class_0_train:.2%}")
+                print(f"\nRatio of class '1' in the test set: {ratio_class_1_test:.2%}")
+                print(f"\nRatio of class '0' in the test set: {ratio_class_0_test:.2%}")
                 for term_x in terms_x:
                     for term_x_name, term_x_value in term_x.items():
                         # start time for fit transform
@@ -209,18 +272,27 @@ class MachineLearningScript:
                             "x_blind_test": term_x_test,
                             "y_name": y_name,
                             "y_fit": y_fit,
+                            "y_amount": len(y_fit),
                             "y_blind_test": y_blind_test,
+                            "y_fit_ratio": f"{ratio_class_train:.2%}",
+                            "y_blind_test_ratio": f"{ratio_class_test:.2%}",
+                            "y_fit_1_ratio": f"{ratio_class_1_train:.2%}",
+                            "y_fit_0_ratio": f"{ratio_class_0_train:.2%}",
+                            "y_blind_test_1_ratio": f"{ratio_class_1_test:.2%}",
+                            "y_blind_test_0_ratio": f"{ratio_class_0_test:.2%}",
+                            "y_fit_ratio_0_1": f"{class_distribution_train[0]}:{class_distribution_train[1]}",
+                            "y_blind_test_ratio_0_1": f"{class_distribution_test[0]}:{class_distribution_test[1]}"
                         }
                         temp_x.append(data_combination)
                         count = len(temp_x)
                         # end time for fit transform
-                        end_time = time.time()
-                        result_time = end_time - start_time
-                        result_time_gmt = time.gmtime(result_time)
-                        result_time = time.strftime("%H:%M:%S", result_time_gmt)
-                        end_term_noti = f"Total time of fit transform: {result_time} at {term_x_name} in process at :{count} with y at {y_name}"
-                        r = requests.post(self.line_url, headers=self.headers, data={'message': end_term_noti})
-                        print(r.text)
+                        # end_time = time.time()
+                        # result_time = end_time - start_time
+                        # result_time_gmt = time.gmtime(result_time)
+                        # result_time = time.strftime("%H:%M:%S", result_time_gmt)
+                        # end_term_noti = f"Total time of fit transform: {result_time} at {term_x_name} in process at :{count} with y at {y_name}"
+                        # r = requests.post(self.line_url, headers=self.headers, data={'message': end_term_noti})
+                        # print(r.text)
         joblib.dump(temp_x, f'../resources/x_y_fit_blind_transform_0_0_2.pkl')
         end_time_at_last = time.time()
         result_time_last = end_time_at_last - start_time_at_first
@@ -238,6 +310,16 @@ term_representations = [CountVectorizer, TfidfVectorizer]
 pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
 n_grams_ranges = [(1, 1), (1, 2), (1, 3)]
 
-run = MachineLearningScript(x, y_source, term_representations, pre_process_steps, n_grams_ranges)
-indexer = run.indexing_x()
-x = run.data_fit_transform(indexer)
+# run = MachineLearningScript(x, y_source, term_representations, pre_process_steps, n_grams_ranges)
+# indexer = run.indexing_x()
+# x = run.data_fit_transform(indexer)
+
+x_y_fit_blind_transform_0_0_2 = joblib.load(Path(os.path.abspath('../resources/x_y_fit_blind_transform_0_0_2.pkl')))
+# x_y_fit_blind_SMOTE_transform_0_0_2 = set_smote(x_y_fit_blind_transform_0_0_2)
+x_y_fit_blind_SMOTE_transform_0_0_2 = joblib.load(
+    Path(os.path.abspath('../resources/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')))
+
+normal_result_for_train_normalize_min_max = normalize_x(x_y_fit_blind_transform_0_0_2, 'min_max')
+normal_result_for_train_normalize_log = normalize_x(x_y_fit_blind_transform_0_0_2, 'log')
+SMOTE_result_for_train_normalize_min_max = normalize_x(x_y_fit_blind_SMOTE_transform_0_0_2, 'min_max')
+SMOTE_result_for_train_normalize_log = normalize_x(x_y_fit_blind_SMOTE_transform_0_0_2, 'log')

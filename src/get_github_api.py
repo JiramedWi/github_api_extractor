@@ -2,16 +2,6 @@ import requests
 
 
 class github_api:
-    # @staticmethod
-    # def extract_url(urls):
-    #     temp = []
-    #     for url in urls:
-    #         if 'github.com' in url:
-    #             eurl = url.split('/')
-    #             owner = eurl[-2]
-    #             repo = eurl[-1]
-    #             temp.append((owner, repo))
-    #     return temp
     headers = {"Accept": "application/vnd.github.v3.star+json",
                    'Authorization': 'Bearer ' + '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'}
 

@@ -333,11 +333,11 @@ def train(datasets):
             "auc": auc_test_score
         }
         results_predict.append(data_combination_result_score)
-    # Save the model and results path
-    results_cv_path = f"../resources/cv_score_{get_var_name(datasets)}.pkl"
-    results_predict_path = f"../resources/predict_{get_var_name(datasets)}.pkl"
-    joblib.dump(result_cv, results_cv_path)
-    joblib.dump(results_predict, results_predict_path)
+        # Save the model and results path
+        results_cv_path = f"../resources/cv_score_{get_var_name(dataset)}.pkl"
+        results_predict_path = f"../resources/predict_{get_var_name(dataset)}.pkl"
+        joblib.dump(result_cv, results_cv_path)
+        joblib.dump(results_predict, results_predict_path)
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)

@@ -1,4 +1,5 @@
 import requests
+import sys
 
 
 class github_api:
@@ -157,3 +158,33 @@ class github_api:
             , 'Authorization': 'Bearer ' + token}
         response = requests.get(url, headers=headers)
         return response.json()
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 2:
+        function_name = sys.argv[1]
+        url = sys.argv[2]
+        if function_name == "extract_url":
+            github_api.extract_url(url)
+        elif function_name == "extract_url_pulls":
+            github_api.extract_url_pulls(url)
+    elif len(sys.argv) == 4:
+        function_name = sys.argv[1]
+        owner = sys.argv[2]
+        repo = sys.argv[3]
+        pull_number = sys.argv[4]
+        token = sys.argv[7]
+        if function_name == "get_pulls_in_detail":
+            github_api.get_files_change(owner, repo, pull_number, token)
+    elif len(sys.argv) == 6:
+        function_name = sys.argv[1]
+        owner = sys.argv[2]
+        repo = sys.argv[3]
+        state = sys.argv[4]
+        per_page = sys.argv[5]
+        page = sys.argv[6]
+        token = sys.argv[7]
+        if function_name == "get_pulls_in_detail":
+            github_api.get_pulls_in_detail(owner, repo, state, per_page, page, token)
+        else:
+            print("Function not recognized.")
