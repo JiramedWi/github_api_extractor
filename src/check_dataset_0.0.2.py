@@ -4,7 +4,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-result_list = joblib.load(Path(os.path.abspath('../resources/x_y_fit_blind_transform_0_0_2.pkl')))
+result_list = joblib.load(Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')))
 df_temp_x = []
 df_temp_x_test = []
 df_temp_y = []
