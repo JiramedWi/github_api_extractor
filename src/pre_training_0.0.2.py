@@ -304,6 +304,7 @@ class MachineLearningScript:
         return temp_x
 
 
+# Start the program
 x = '../resources/result_0.0.2/x_0_0_2.pkl'
 y_source = '../resources/result_0.0.2/y_0_0_2.pkl'
 term_representations = [CountVectorizer, TfidfVectorizer]

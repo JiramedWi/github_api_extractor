@@ -49,30 +49,22 @@ predict_normal_result_for_train_normalize_min_max = joblib.load(
     Path(os.path.abspath('../resources/result_0.0.2/predict_normal_result_for_train_normalize_min_max.pkl')))
 
 
-def loop_cv_dict_normal_list_to_df(dict_list):
+def loop_dict_normal_list_to_df(dict_list):
     temp = []
     new_dict = {}
-    for i in dict_list:
-        count_vectorizer, pre_process, n_gram_first, n_gram_second = parse_combination(i['combination'])
+    for a_dict in dict_list:
+        count_vectorizer, pre_process, n_gram_first, n_gram_second = parse_combination(a_dict['combination'])
         new_dict = {
             'count_vectorizer': count_vectorizer,
             'pre_process': pre_process,
-            'n_gram': f"{n_gram_first}_{n_gram_second}",
-            'Y_name': i['y_name'],
-            'y_fit_ratio': i['y_fit_ratio'],
-            'y_blind_test_ratio': i['y_blind_test_ratio'],
-            # 'y_fit_ratio_0_1': i['y_fit_ratio_0_1'],
-            # 'y_blind_test_ratio_0_1': i['y_blind_test_ratio_0_1'],
-            'y_fit_1_ratio': i['y_fit_1_ratio'],
-            'y_fit_0_ratio': i['y_fit_0_ratio'],
-            'y_blind_test_1_ratio': i['y_blind_test_1_ratio'],
-            'y_blind_test_0_ratio': i['y_blind_test_0_ratio'],
-            'cv_precision': i['cv_results']['precision_macro'],
-            'cv_recall': i['cv_results']['recall_macro'],
-            'cv_f1': i['cv_results']['f1_macro'],
+            'n_gram': f"{n_gram_first}_{n_gram_second}"
         }
+        new_dict.update(a_dict)
+        for e in ['x_fit', 'x_blind_test']:
+            new_dict.pop(e)
         new_df = pd.DataFrame(new_dict, index=[0])
         temp.append(new_df)
+        del new_dict
     df = pd.concat(temp)
     return df
 
@@ -209,47 +201,47 @@ def parse_combination(combination_text):
 # Dataframe dataset
 normal_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')
 normal_result_for_train_normalize_min_max = joblib.load(
-    '../resources/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
+    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
 normal_result_for_train_normalize_log = joblib.load(
-    '../resources/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
+    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
 
-SMOTE_result_for_train = joblib.load('../resources/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+SMOTE_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
 SMOTE_result_for_train_normalize_min_max = joblib.load(
-    '../resources/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
+    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
 SMOTE_result_for_train_normalize_log = joblib.load(
-    '../resources/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
+    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
 
-normal_result_for_train = loop_normal_list_to_df(normal_result_for_train)
-normal_result_for_train_normalize_min_max = loop_normal_list_to_df(normal_result_for_train_normalize_min_max)
-normal_result_for_train_normalize_log = loop_normal_list_to_df(normal_result_for_train_normalize_log)
+normal_result_for_train = loop_dict_normal_list_to_df(normal_result_for_train)
+normal_result_for_train_normalize_min_max = loop_dict_normal_list_to_df(normal_result_for_train_normalize_min_max)
+normal_result_for_train_normalize_log = loop_dict_normal_list_to_df(normal_result_for_train_normalize_log)
 
-SMOTE_result_for_train = loop_normal_list_to_df(SMOTE_result_for_train)
-SMOTE_result_for_train_normalize_min_max = loop_normal_list_to_df(SMOTE_result_for_train_normalize_min_max)
-SMOTE_result_for_train_normalize_log = loop_normal_list_to_df(SMOTE_result_for_train_normalize_log)
+SMOTE_result_for_train = loop_dict_normal_list_to_df(SMOTE_result_for_train)
+SMOTE_result_for_train_normalize_min_max = loop_dict_normal_list_to_df(SMOTE_result_for_train_normalize_min_max)
+SMOTE_result_for_train_normalize_log = loop_dict_normal_list_to_df(SMOTE_result_for_train_normalize_log)
 
 # Dataframe for the results
-cv_score_normal_result_for_train = loop_cv_dict_normal_list_to_df(cv_score_normal_result_for_train)
-cv_score_normal_result_for_train_normalize_min_max = loop_cv_dict_normal_list_to_df(
+cv_score_normal_result_for_train = loop_dict_normal_list_to_df(cv_score_normal_result_for_train)
+cv_score_normal_result_for_train_normalize_min_max = loop_dict_normal_list_to_df(
     cv_score_normal_result_for_train_normalize_min_max)
-cv_score_normal_result_for_train_normalize_log = loop_cv_dict_normal_list_to_df(
+cv_score_normal_result_for_train_normalize_log = loop_dict_normal_list_to_df(
     cv_score_normal_result_for_train_normalize_log)
 
-predict_normal_result_for_train = loop_predict_dict_normal_list_to_df(predict_normal_result_for_train)
-predict_normal_result_for_train_normalize_min_max = loop_predict_dict_normal_list_to_df(
+predict_normal_result_for_train = loop_dict_normal_list_to_df(predict_normal_result_for_train)
+predict_normal_result_for_train_normalize_min_max = loop_dict_normal_list_to_df(
     predict_normal_result_for_train_normalize_min_max)
-predict_normal_result_for_train_normalize_log = loop_predict_dict_normal_list_to_df(
+predict_normal_result_for_train_normalize_log = loop_dict_normal_list_to_df(
     predict_normal_result_for_train_normalize_log)
 
-cv_score_smote_result_for_train = loop_cv_dict_SMOTE_list_to_df(cv_score_SMOTE_result_for_train)
-cv_score_smote_result_for_train_normalize_min_max = loop_cv_dict_SMOTE_list_to_df(
+cv_score_smote_result_for_train = loop_dict_normal_list_to_df(cv_score_SMOTE_result_for_train)
+cv_score_smote_result_for_train_normalize_min_max = loop_dict_normal_list_to_df(
     cv_score_SMOTE_result_for_train_normalize_min_max)
-cv_score_smote_result_for_train_normalize_log = loop_cv_dict_SMOTE_list_to_df(
+cv_score_smote_result_for_train_normalize_log = loop_dict_normal_list_to_df(
     cv_score_SMOTE_result_for_train_normalize_log)
 
-predict_smote_result_for_train = loop_predict_dict_SMOTE_list_to_df(predict_SMOTE_result_for_train)
-predict_SMOTE_result_for_train_normalize_min_max = loop_predict_dict_SMOTE_list_to_df(
+predict_smote_result_for_train = loop_dict_normal_list_to_df(predict_SMOTE_result_for_train)
+predict_SMOTE_result_for_train_normalize_min_max = loop_dict_normal_list_to_df(
     predict_SMOTE_result_for_train_normalize_min_max)
-predict_SMOTE_result_for_train_normalize_log = loop_predict_dict_SMOTE_list_to_df(
+predict_SMOTE_result_for_train_normalize_log = loop_dict_normal_list_to_df(
     predict_SMOTE_result_for_train_normalize_log)
 
 sns.set(style="whitegrid")
@@ -340,7 +332,7 @@ def boxplot_predict(df, metric):
 # boxplot_cv(cv_score_normal_result_for_train_normalize_log, 'cv_f1')
 # boxplot_cv(cv_score_normal_result_for_train_normalize_log, 'cv_precision')
 # boxplot_cv(cv_score_normal_result_for_train_normalize_log, 'cv_recall')
-#
+
 # boxplot_cv(cv_score_smote_result_for_train, 'cv_f1')
 # boxplot_cv(cv_score_smote_result_for_train, 'cv_precision')
 # boxplot_cv(cv_score_smote_result_for_train, 'cv_recall')
