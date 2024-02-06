@@ -237,6 +237,11 @@ class MachineLearningScript:
                 print(f"start at y_dict name: {y_name}")
                 x_fit, x_blind_test, y_fit, y_blind_test = train_test_split(x_cleaned, y_value, test_size=0.2,
                                                                             stratify=y_value)
+                # Reset index
+                x_fit = x_fit.reset_index(drop=True)
+                x_blind_test = x_blind_test.reset_index(drop=True)
+                y_fit = y_fit.reset_index(drop=True)
+                y_blind_test = y_blind_test.reset_index(drop=True)
                 # Check ratio of Y
                 class_distribution_train = pd.Series(y_fit).value_counts()
                 print(f"count_y {class_distribution_train}")
@@ -321,11 +326,11 @@ n_grams_ranges = [(1, 1), (1, 2), (1, 3)]
 # x_y_fit_blind_SMOTE_transform_0_0_2 = set_smote(x_y_fit_blind_transform_0_0_2)
 
 # To run normalize
-x_y_fit_blind_transform_0_0_2 = joblib.load(Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')))
-x_y_fit_blind_SMOTE_transform_0_0_2 = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')))
-
-normal_result_for_train_normalize_min_max = normalize_x(x_y_fit_blind_transform_0_0_2, 'min_max')
-normal_result_for_train_normalize_log = normalize_x(x_y_fit_blind_transform_0_0_2, 'log')
-SMOTE_result_for_train_normalize_min_max = normalize_x(x_y_fit_blind_SMOTE_transform_0_0_2, 'min_max')
-SMOTE_result_for_train_normalize_log = normalize_x(x_y_fit_blind_SMOTE_transform_0_0_2, 'log')
+# x_y_fit_blind_transform_0_0_2 = joblib.load(Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')))
+# x_y_fit_blind_SMOTE_transform_0_0_2 = joblib.load(
+#     Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')))
+#
+# normal_result_for_train_normalize_min_max = normalize_x(x_y_fit_blind_transform_0_0_2, 'min_max')
+# normal_result_for_train_normalize_log = normalize_x(x_y_fit_blind_transform_0_0_2, 'log')
+# SMOTE_result_for_train_normalize_min_max = normalize_x(x_y_fit_blind_SMOTE_transform_0_0_2, 'min_max')
+# SMOTE_result_for_train_normalize_log = normalize_x(x_y_fit_blind_SMOTE_transform_0_0_2, 'log')

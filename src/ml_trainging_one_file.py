@@ -50,14 +50,37 @@ def get_var_name(var_value):
     return None
 
 
-gbm_model = GradientBoostingClassifier(n_estimators=5000,
-                                       learning_rate=0.05,
-                                       max_depth=3,
-                                       subsample=0.5,
-                                       validation_fraction=0.1,
-                                       n_iter_no_change=20,
-                                       max_features='log2',
-                                       verbose=1)
+# TODO: 1. Tune dataset
+gbm_model_1st_try = GradientBoostingClassifier(n_estimators=5000,
+                                               learning_rate=0.05,
+                                               max_depth=3,
+                                               subsample=0.5,
+                                               validation_fraction=0.1,
+                                               n_iter_no_change=20,
+                                               max_features='log2',
+                                               verbose=1)
+
+gbm_model_2nd = GradientBoostingClassifier(n_estimators=10000,
+                                           learning_rate=0.1,
+                                           max_depth=5,
+                                           min_samples_split=5,
+                                           min_samples_leaf=2,
+                                           subsample=0.9,
+                                           validation_fraction=0.1,
+                                           n_iter_no_change=20,
+                                           max_features='log2',
+                                           verbose=1)
+
+gbm_model_3rd = GradientBoostingClassifier(n_estimators=10000,
+                                           learning_rate=0.1,
+                                           max_depth=7,
+                                           min_samples_split=10,
+                                           min_samples_leaf=5,
+                                           subsample=1.0,
+                                           validation_fraction=0.1,
+                                           n_iter_no_change=20,
+                                           max_features=None,
+                                           verbose=1)
 
 
 def calculate_precision(y_true, y_pred):
@@ -109,11 +132,11 @@ def custom_precision_recall_curve(y_true, probas_pred):
     return area_under_curve
 
 
-def train_cv(datasets):
+def train_cv(datasets, model):
     # Start the clock, train and evaluate the model, stop the clock with gmt+7 time
     start_time = datetime.now(tz)
     start_time_announce = start_time.strftime("%c")
-    start_noti = f"start to train cv at: {start_time_announce}" + '\n' + f"dataset: {get_var_name(datasets)}"
+    start_noti = f"start to train cv at: {start_time_announce}" + '\n' + f"dataset: {get_var_name(datasets)}" + ' ' + f"model: {get_var_name(model)}"
     r = requests.post(line_url, headers=headers, data={'message': start_noti})
     print(r.text, start_time_announce)
     custom_precision_scorer = make_scorer(calculate_precision, greater_is_better=True)
@@ -162,11 +185,11 @@ def train_cv(datasets):
                 X_train, X_test = x_fit[train_index], x_fit[test_index]
                 Y_train, Y_test = y_fit[train_index], y_fit[test_index]
                 # Train your model
-                gbm_model.fit(X_train, Y_train)
+                model.fit(X_train, Y_train)
                 # Store the trained model
-                trained_models.append(gbm_model)
+                trained_models.append(model)
                 # Make predictions on the test set
-                predictions = gbm_model.predict(X_test)
+                predictions = model.predict(X_test)
                 # # Fold index
                 fold_result = {}
                 err_text = ''
@@ -194,7 +217,7 @@ def train_cv(datasets):
         dataset.update(data_combination_cv_score)
         del data_combination_cv_score
     # Save the model and results path
-    results_cv_path = f"../resources/result_0.0.2/cv_score_{get_var_name(datasets)}.pkl"
+    results_cv_path = f"../resources/result_0.0.2/cv_score_{get_var_name(datasets)}_{get_var_name(model)}.pkl"
     # result_cv = pd.DataFrame(result_cv)
     joblib.dump(datasets, results_cv_path)
     end_time = datetime.now(tz)
@@ -212,11 +235,11 @@ def train_cv(datasets):
     return datasets
 
 
-def train_ml(datasets):
+def train_ml(datasets, model):
     # Start the clock, train and evaluate the model, stop the clock with gmt+7 time
     start_time = datetime.now(tz)
     start_time_announce = start_time.strftime("%c")
-    start_noti = f"start to train ML at: {start_time_announce}" + '\n' + f"dataset: {get_var_name(datasets)}"
+    start_noti = f"start to train ML at: {start_time_announce}" + '\n' + f"dataset: {get_var_name(datasets)}" + ' ' + f"model: {get_var_name(model)}"
     r = requests.post(line_url, headers=headers, data={'message': start_noti})
     print(r.text, start_time_announce)
     # results_predict = []
@@ -231,8 +254,8 @@ def train_ml(datasets):
         # r = requests.post(line_url, headers=headers, data={'message': start_dataset_noti})
         print(r.text)
         # Train and evaluate the model
-        gbm_model.fit(x_fit, y_fit)
-        predict = gbm_model.predict(x_blind_test)
+        model.fit(x_fit, y_fit)
+        predict = model.predict(x_blind_test)
 
         # Calculate metrics
         precision_test_score = precision_score(y_blind_test, predict)
@@ -240,7 +263,7 @@ def train_ml(datasets):
         f1_test_score = f1_score(y_blind_test, predict)
         mcc = matthews_corrcoef(y_blind_test, predict)
 
-        predicted_probabilities = gbm_model.predict_proba(x_blind_test)[:, 1]
+        predicted_probabilities = model.predict_proba(x_blind_test)[:, 1]
         # auc_score = auc(recall_test_score, precision_test_score)
         roc_auc_test_score = roc_auc_score(y_blind_test, predicted_probabilities)
         precision_recall_curve_test_score = precision_recall_curve(y_blind_test, predicted_probabilities)
@@ -256,11 +279,8 @@ def train_ml(datasets):
         }
         # Add the results to the list of datasets
         dataset.update(data_combination_result_score)
-        # results_predict = pd.DataFrame(data_combination_result_score, index=[0])
-        # dataset['predict_results'] = results_predict
-        # results_predict.append(data_combination_result_score)
 
-    results_predict_path = f"../resources/result_0.0.2/predict_{get_var_name(datasets)}.pkl"
+    results_predict_path = f"../resources/result_0.0.2/predict_{get_var_name(datasets)}_{get_var_name(model)}.pkl"
     # results_predict = pd.DataFrame(results_predict)
     joblib.dump(datasets, results_predict_path)
     end_time = datetime.now(tz)
@@ -297,24 +317,30 @@ SMOTE_result_for_train_normalize_log = joblib.load(
     '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
 
 # normal result
-result_normal_cv = train_cv(normal_result_for_train)
-result_normal_predict = train_ml(normal_result_for_train)
-
-result_normal_normalize_min_max_cv = train_cv(normal_result_for_train_normalize_min_max)
-result_normal_normalize_min_max_predict = train_ml(normal_result_for_train_normalize_min_max)
-
-result_normal_normalize_log_cv = train_cv(normal_result_for_train_normalize_log)
-result_normal_normalize_log_predict = train_ml(normal_result_for_train_normalize_log)
+# result_normal_cv = train_cv(normal_result_for_train)
+# result_normal_predict = train_ml(normal_result_for_train)
+#
+# result_normal_normalize_min_max_cv = train_cv(normal_result_for_train_normalize_min_max)
+# result_normal_normalize_min_max_predict = train_ml(normal_result_for_train_normalize_min_max)
+#
+# result_normal_normalize_log_cv = train_cv(normal_result_for_train_normalize_log)
+# result_normal_normalize_log_predict = train_ml(normal_result_for_train_normalize_log)
 
 # SMOTE result
-result_SMOTE_cv = train_cv(SMOTE_result_for_train)
-result_SMOTE_predict = train_ml(SMOTE_result_for_train)
+result_SMOTE_cv_1st_model = train_cv(SMOTE_result_for_train, gbm_model_1st_try)
+result_SMOTE_predict_1st_model = train_ml(SMOTE_result_for_train, gbm_model_1st_try)
 
-result_SMOTE_normalize_min_max_cv = train_cv(SMOTE_result_for_train_normalize_min_max)
-result_SMOTE_normalize_min_max_predict = train_ml(SMOTE_result_for_train_normalize_min_max)
+result_SMOTE_cv_2nd_model = train_cv(SMOTE_result_for_train, gbm_model_2nd)
+result_SMOTE_predict_2nd_model = train_ml(SMOTE_result_for_train, gbm_model_2nd)
 
-result_SMOTE_normalize_log_cv = train_cv(SMOTE_result_for_train_normalize_log)
-result_SMOTE_normalize_log_predict = train_ml(SMOTE_result_for_train_normalize_log)
+result_SMOTE_cv_3rd_model = train_cv(SMOTE_result_for_train, gbm_model_3rd)
+result_SMOTE_predict_3rd_model = train_ml(SMOTE_result_for_train, gbm_model_3rd)
+
+# result_SMOTE_normalize_min_max_cv = train_cv(SMOTE_result_for_train_normalize_min_max)
+# result_SMOTE_normalize_min_max_predict = train_ml(SMOTE_result_for_train_normalize_min_max)
+#
+# result_SMOTE_normalize_log_cv = train_cv(SMOTE_result_for_train_normalize_log)
+# result_SMOTE_normalize_log_predict = train_ml(SMOTE_result_for_train_normalize_log)
 
 end_time = datetime.now(tz)
 result_time = end_time - start_time

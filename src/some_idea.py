@@ -8,7 +8,7 @@ from get_github_api import github_api
 
 path = os.path.dirname(__file__)
 # path = os.getcwd()
-# hive_request = pd.read_pickle(Path(os.path.abspath('../resources/hive_use_for_run_pre_process.pkl')))
+hive_request = pd.read_pickle(Path(os.path.abspath('../resources/hive_use_for_run_pre_process.pkl')))
 filepath = Path(os.path.abspath(os.path.join(path, '../resources/clean_demo.pkl')))
 
 
