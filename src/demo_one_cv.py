@@ -70,7 +70,7 @@ def loop_dict_normal_list_to_df(dict_list):
             print(a_dict['x_blind_test'].shape)
             print('-----------------------------')
             new_dict.pop(col)
-        new_df = pd.DataFrame(new_dict)
+        new_df = pd.DataFrame([new_dict])
         temp.append(new_df)
         del new_dict
     df = pd.concat(temp)
@@ -85,15 +85,19 @@ def print_x_features_from_dict_list(dict_list):
         print('-----------------------------')
 
 
-# cv_score_normal_result_for_train = joblib.load(
-#     Path(os.path.abspath('../resources/result_0.0.2/cv_score_normal_result_for_train.pkl')))
+cv_score_normal_result_for_train = joblib.load(
+    Path(os.path.abspath('../resources/result_0.0.2/cv_score_normal_result_for_train_gbm_model_3rd.pkl')))
+cv_score_normal_result_for_train = loop_dict_normal_list_to_df(cv_score_normal_result_for_train)
 # cv_score_normal_result_for_train = loop_dict_normal_list_to_df(cv_score_normal_result_for_train)
+predict_normal_result_for_train = joblib.load(
+    Path(os.path.abspath('../resources/result_0.0.2/predict_normal_result_for_train_gbm_model_3rd.pkl')))
 
-# SMOTE_result_for_train_cv_3rd = joblib.load('../resources/result_0.0.2/cv_score_SMOTE_result_for_train_gbm_model_3rd.pkl')
+SMOTE_result_for_train_cv_3rd = joblib.load('../resources/result_0.0.2/cv_score_SMOTE_result_for_train_gbm_model_3rd.pkl')
+SMOTE_result_for_train_cv_3rd = loop_dict_normal_list_to_df(SMOTE_result_for_train_cv_3rd)
 # SMOTE_result_for_cv_result_3rd = loop_dict_normal_list_to_df(SMOTE_result_for_train_cv_3rd)
 
 SMOTE_result_for_train_result_predict_3rd = joblib.load('../resources/result_0.0.2/predict_SMOTE_result_for_train_gbm_model_3rd.pkl')
-SMOTE_result_for_train_predict_result_3rd = loop_dict_normal_list_to_df(SMOTE_result_for_train_result_predict_3rd)
+# df_SMOTE_result_for_train_predict_result_3rd = loop_dict_normal_list_to_df(SMOTE_result_for_train_result_predict_3rd)
 
 # print_x_features_from_dict_list(cv_score_normal_result_for_train.to_dict('records'))
 

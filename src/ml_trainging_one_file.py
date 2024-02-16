@@ -82,6 +82,17 @@ gbm_model_3rd = GradientBoostingClassifier(n_estimators=10000,
                                            max_features=None,
                                            verbose=1)
 
+gbm_model_ajarn_kong_rec = GradientBoostingClassifier(n_estimators=1000,
+                                                      learning_rate=0.1,
+                                                      max_depth=8,
+                                                      min_samples_split=16,
+                                                      min_samples_leaf=5,
+                                                      subsample=1.0,
+                                                      # validation_fraction=0.1,
+                                                      # n_iter_no_change=20,
+                                                      # max_features=None,
+                                                      verbose=1)
+
 
 def calculate_precision(y_true, y_pred):
     true_positive = confusion_matrix(y_true, y_pred)[1, 1]
@@ -175,7 +186,6 @@ def train_cv(datasets, model):
         # Train and evaluate the model
         # to get the train or test value using => cv_results['indices']['train'][0].tolist()
         data_combination_cv_score = {}
-        cv_results = None
         try:
             # Assuming gbm_model is your GradientBoostingClassifier
             skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -187,7 +197,7 @@ def train_cv(datasets, model):
                 # Train your model
                 model.fit(X_train, Y_train)
                 # Store the trained model
-                trained_models.append(model)
+                # trained_models.append(model)
                 # Make predictions on the test set
                 predictions = model.predict(X_test)
                 # # Fold index
@@ -279,10 +289,10 @@ def train_ml(datasets, model):
         }
         # Add the results to the list of datasets
         dataset.update(data_combination_result_score)
-
+        del data_combination_result_score
     results_predict_path = f"../resources/result_0.0.2/predict_{get_var_name(datasets)}_{get_var_name(model)}.pkl"
-    # results_predict = pd.DataFrame(results_predict)
-    joblib.dump(datasets, results_predict_path)
+    results_predict = pd.DataFrame(datasets).reset_index()
+    joblib.dump(results_predict, results_predict_path)
     end_time = datetime.now(tz)
     result_time = end_time - start_time
     result_time_in_sec = result_time.total_seconds()
@@ -295,62 +305,4 @@ def train_ml(datasets, model):
     end_time_noti = f"Total time of ML train: {result_time_in_sec} seconds, {in_minute} minutes, {in_hour} hours"
     r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
     print(r.text, end_time_noti)
-    return datasets
-
-
-start_time = datetime.now(tz)
-start_time_announce = start_time.strftime("%c")
-start_noti = f"start to train CV and ML at: {start_time_announce}"
-r = requests.post(line_url, headers=headers, data={'message': start_noti})
-print(r.text, start_time_announce)
-
-normal_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')
-normal_result_for_train_normalize_min_max = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
-normal_result_for_train_normalize_log = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
-
-SMOTE_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
-SMOTE_result_for_train_normalize_min_max = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
-SMOTE_result_for_train_normalize_log = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
-
-# normal result
-# result_normal_cv = train_cv(normal_result_for_train)
-# result_normal_predict = train_ml(normal_result_for_train)
-#
-# result_normal_normalize_min_max_cv = train_cv(normal_result_for_train_normalize_min_max)
-# result_normal_normalize_min_max_predict = train_ml(normal_result_for_train_normalize_min_max)
-#
-# result_normal_normalize_log_cv = train_cv(normal_result_for_train_normalize_log)
-# result_normal_normalize_log_predict = train_ml(normal_result_for_train_normalize_log)
-
-# SMOTE result
-result_SMOTE_cv_1st_model = train_cv(SMOTE_result_for_train, gbm_model_1st_try)
-result_SMOTE_predict_1st_model = train_ml(SMOTE_result_for_train, gbm_model_1st_try)
-
-result_SMOTE_cv_2nd_model = train_cv(SMOTE_result_for_train, gbm_model_2nd)
-result_SMOTE_predict_2nd_model = train_ml(SMOTE_result_for_train, gbm_model_2nd)
-
-result_SMOTE_cv_3rd_model = train_cv(SMOTE_result_for_train, gbm_model_3rd)
-result_SMOTE_predict_3rd_model = train_ml(SMOTE_result_for_train, gbm_model_3rd)
-
-# result_SMOTE_normalize_min_max_cv = train_cv(SMOTE_result_for_train_normalize_min_max)
-# result_SMOTE_normalize_min_max_predict = train_ml(SMOTE_result_for_train_normalize_min_max)
-#
-# result_SMOTE_normalize_log_cv = train_cv(SMOTE_result_for_train_normalize_log)
-# result_SMOTE_normalize_log_predict = train_ml(SMOTE_result_for_train_normalize_log)
-
-end_time = datetime.now(tz)
-result_time = end_time - start_time
-result_time_in_sec = result_time.total_seconds()
-# Make it short to 2 decimal
-in_minute = result_time_in_sec / 60
-in_minute = "{:.2f}".format(in_minute)
-# Make it short to 5 decimal
-in_hour = result_time_in_sec / 3600
-in_hour = "{:.5f}".format(round(in_hour, 2))
-end_time_noti = f"Total time of CV and ML train: {result_time_in_sec} seconds, {in_minute} minutes, {in_hour} hours"
-r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
-print(r.text, end_time_noti)
+    return results_predict
