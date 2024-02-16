@@ -13,6 +13,7 @@ class collect_pulls:
     def __init__(self, url):
         self.url = github_api.extract_url(url)
         self.token = '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'
+        # TODO: write new file path to store the file
         self.save_path = Path(os.path.abspath('../resources'))
         self.logger_path = Path(os.path.abspath('../resources/Logger'))
         self.result_dataframe = {'project_name': [], 'issue': [], 'file_target': [], 'before_change': [],
