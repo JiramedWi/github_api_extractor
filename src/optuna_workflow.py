@@ -80,7 +80,7 @@ def objective(trial, x, y):
                                      subsample=subsample,
                                      random_state=42)
 
-    result = model_selection.cross_validate(gbm, x, y, cv=5, n_jobs=-4, scoring='roc_auc')
+    result = model_selection.cross_validate(gbm, x, y, cv=5, n_jobs=3, scoring='roc_auc')
     return result
 
 
