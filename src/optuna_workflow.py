@@ -15,6 +15,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from matplotlib import pyplot as plt
+from plotly.subplots import make_subplots
+
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet
 from nltk.stem import PorterStemmer
@@ -81,38 +83,51 @@ def objective(trial, x, y):
                                      random_state=42)
 
     result = model_selection.cross_validate(gbm, x, y, cv=5, n_jobs=3, scoring='roc_auc')
-    return result
+    print(result)
+    auc_scores = result['test_score']
+    return np.mean(auc_scores)
 
 
-def save_plot_optuna(study, path):
-    # Create a single figure to accommodate all plots
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+# callback = TimeoutCallback(timeout_seconds=600)
 
+
+def save_plot_optuna(study, path, name):
     # Plot optimization history
-    optuna.visualization.plot_optimization_history(study, target_names=['objective'], ax=axes[0, 0])
-    axes[0, 0].set_title("Optimization History")
+    fig1 = optuna.visualization.plot_optimization_history(study)
 
     # Plot parallel coordinates
-    optuna.visualization.plot_parallel_coordinate(study, ax=axes[0, 1])
-    axes[0, 1].set_title("Parallel Coordinates")
+    fig2 = optuna.visualization.plot_parallel_coordinate(study)
 
     # Plot slice for specified parameters
     target_params = ['n_estimators', 'learning_rate', 'max_depth', 'min_samples_split', 'min_samples_leaf', 'subsample']
-    optuna.visualization.plot_slice(study, params=target_params, ax=axes[1, 0])
-    axes[1, 0].set_title("Slice Plot")
+    fig3 = optuna.visualization.plot_slice(study, params=target_params)
 
     # Plot parameter importances
-    optuna.visualization.plot_param_importances(study, ax=axes[1, 1])
-    axes[1, 1].set_title("Parameter Importance")
+    fig4 = optuna.visualization.plot_param_importances(study)
 
-    # Adjust spacing and layout as needed
-    plt.tight_layout()
+    # Combine the subplots into a single figure
+    combined_fig = make_subplots(rows=2, cols=2)
+
+    # Add traces from each subplot to the combined figure
+    for trace in fig1.data:
+        combined_fig.add_trace(trace, row=1, col=1)
+
+    for trace in fig2.data:
+        combined_fig.add_trace(trace, row=1, col=2)
+
+    for trace in fig3.data:
+        combined_fig.add_trace(trace, row=2, col=1)
+
+    for trace in fig4.data:
+        combined_fig.add_trace(trace, row=2, col=2)
 
     # Save the figure
-    plt.savefig(f"{path}.png")
+    combined_fig.update_layout(title_text=f"{name} Figure")
+    combined_fig.show()
+    combined_fig.write_image(f"{path}.png")
 
 
-def find_best_parameter(datasets):
+def find_best_parameter(datasets: list):
     # Set up time and line notification
     start_time = time.time()
     start_time_gmt = time.gmtime(start_time)
@@ -126,24 +141,25 @@ def find_best_parameter(datasets):
         x_fit = dataset['x_fit']
         y_fit = dataset['y_fit']
         y_name = dataset['y_name']
-        # start_dataset_noti = f"start to train cv at: {term_x_name}"
-        # r = requests.post(line_url, headers=headers, data={'message': start_dataset_noti})
-        print(r.text)
+
         # Find best parameter
         try:
             study = optuna.create_study(direction='maximize')
             study.optimize(
                 lambda trial: objective(trial, x_fit, y_fit),
-                n_trials=15,
-                callbacks=[TimeoutCallback(1800)]
+                n_trials=1000,
+                timeout=600,
             )
             trial = study.best_trial
             result = trial.value
             best_params = trial.params
             dataset['best_params'] = best_params
             dataset['result'] = result
-            save_plot_path = f"../resources/optuna_plot/plot_optuna_{get_var_name(datasets)}_{term_x_name}"
-            save_plot_optuna(study, save_plot_path)
+            noti_study = f"WE get the results at index {datasets.index(dataset)} with {result}"
+            r = requests.post(line_url, headers=headers, data={'message': noti_study})
+            print(r.text, noti_study)
+            # save_plot_path = f"../resources/optuna_plot/plot_optuna_{get_var_name(datasets)}_{term_x_name}"
+            # save_plot_optuna(study, save_plot_path, get_var_name(datasets))
         except Exception as e:
             logger.error(f"Error during model evaluation: {e}")
             err_text = f"{e}" + 'error type ' + type(e).__name__ + '\n'
@@ -162,3 +178,9 @@ def find_best_parameter(datasets):
     print(r.text, end_time_noti)
     return datasets
 
+
+normal_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
+smote_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+
+parameter_result_normal = find_best_parameter(normal_result)
+parameter_result_smote = find_best_parameter(smote_result)
