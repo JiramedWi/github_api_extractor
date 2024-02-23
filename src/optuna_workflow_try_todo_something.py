@@ -141,12 +141,12 @@ def find_best_parameter(datasets: list):
         x_fit = dataset['x_fit']
         y_fit = dataset['y_fit']
         y_name = dataset['y_name']
-        # Find best parameter
-        try:
+        if term_x_name == 'TfidfVectorizer_pre_process_porterstemmer_n_grams_1_1' and y_name == 'issue_in_test_step':
+            # Find best parameter
             study = optuna.create_study(direction='maximize')
             study.optimize(
                 lambda trial: objective(trial, x_fit, y_fit),
-                n_trials=1000,
+                n_trials=5,
                 timeout=600,
             )
             trial = study.best_trial
@@ -157,13 +157,9 @@ def find_best_parameter(datasets: list):
             noti_study = f"WE get the results at index {datasets.index(dataset)} with {result}"
             r = requests.post(line_url, headers=headers, data={'message': noti_study})
             print(r.text, noti_study)
-            # save_plot_path = f"../resources/optuna_plot/plot_optuna_{get_var_name(datasets)}_{term_x_name}"
-            # save_plot_optuna(study, save_plot_path, get_var_name(datasets))
-        except Exception as e:
-            logger.error(f"Error during model evaluation: {e}")
-            err_text = f"{e}" + 'error type ' + type(e).__name__ + '\n'
-            dataset['best_params'] = err_text
-            dataset['result'] = err_text
+        # save_plot_path = f"../resources/optuna_plot/plot_optuna_{get_var_name(datasets)}_{term_x_name}"
+        # save_plot_optuna(study, save_plot_path, get_var_name(datasets))
+
     # Save the model and results path
     results_cv_path = f"../resources/optuna_result/cv_score_{get_var_name(datasets)}.pkl"
     # result_cv = pd.DataFrame(result_cv)
@@ -179,7 +175,7 @@ def find_best_parameter(datasets: list):
 
 
 normal_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
-smote_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+# smote_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
 
 parameter_result_normal = find_best_parameter(normal_result)
-parameter_result_smote = find_best_parameter(smote_result)
+# parameter_result_smote = find_best_parameter(smote_result)
