@@ -298,7 +298,7 @@ class MachineLearningScript:
                         # end_term_noti = f"Total time of fit transform: {result_time} at {term_x_name} in process at :{count} with y at {y_name}"
                         # r = requests.post(self.line_url, headers=self.headers, data={'message': end_term_noti})
                         # print(r.text)
-        joblib.dump(temp_x, f'../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')
+        joblib.dump(temp_x, f'../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
         end_time_at_last = time.time()
         result_time_last = end_time_at_last - start_time_at_first
         result_time_gmt = time.gmtime(result_time_last)
@@ -312,18 +312,19 @@ class MachineLearningScript:
 # Start the program
 x = '../resources/result_0.0.2/x_0_0_2.pkl'
 y_source = '../resources/result_0.0.2/y_0_0_2.pkl'
-term_representations = [CountVectorizer, TfidfVectorizer]
+term_representations = [TfidfVectorizer]
 pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
-n_grams_ranges = [(1, 1), (1, 2), (1, 3)]
+n_grams_ranges = [(1, 1), (1, 2)]
 
 # To run datafit
-# run = MachineLearningScript(x, y_source, term_representations, pre_process_steps, n_grams_ranges)
-# indexer = run.indexing_x()
-# x = run.data_fit_transform(indexer)
+run = MachineLearningScript(x, y_source, term_representations, pre_process_steps, n_grams_ranges)
+indexer = run.indexing_x()
+x = run.data_fit_transform(indexer)
 
 # To run smote
-# x_y_fit_blind_transform_0_0_2 = joblib.load(Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')))
-# x_y_fit_blind_SMOTE_transform_0_0_2 = set_smote(x_y_fit_blind_transform_0_0_2)
+x_y_fit_blind_transform_0_0_2 = joblib.load(
+    Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')))
+x_y_fit_blind_SMOTE_transform_0_0_2 = set_smote(x_y_fit_blind_transform_0_0_2)
 
 # To run normalize
 # x_y_fit_blind_transform_0_0_2 = joblib.load(Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')))
