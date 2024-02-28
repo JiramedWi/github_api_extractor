@@ -108,38 +108,9 @@ def get_best_params_and_result(df: pd.DataFrame):
 
 
 best_param_of_normal = get_best_params_and_result(cv_score_normal_df)
+joblib.dump(best_param_of_normal, '../resources/optuna_result/best_param_of_normal.pkl')
 best_param_of_smote = get_best_params_and_result(cv_score_smote_df)
-
-
-def compare_columns(df1, df2, col1_name, col2_name):
-    """
-  Compares two columns from different DataFrames and returns True if they are identical.
-
-  Args:
-      df1 (pd.DataFrame): First DataFrame.
-      df2 (pd.DataFrame): Second DataFrame.
-      col1_name (str): Name of the column in df1 to compare.
-      col2_name (str): Name of the column in df2 to compare.
-
-  Returns:
-      bool: True if the columns are identical, False otherwise.
-  """
-
-    # Handle potential column name mismatches and empty DataFrames
-    if not (col1_name in df1.columns and col2_name in df2.columns):
-        print(f"Column name mismatch: {col1_name} not found in df1 or {col2_name} not found in df2")
-        return False
-    if df1.empty or df2.empty:
-        print(f"One or both DataFrames are empty")
-        return False
-
-    # Ensure column lengths are equal
-    if len(df1[col1_name]) != len(df2[col2_name]):
-        print(f"Columns have different lengths: {len(df1[col1_name])} vs {len(df2[col2_name])}")
-        return False
-
-    # Efficiently compare elements (consider dtype and missing values if applicable)
-    return df1[col1_name].eq(df2[col2_name]).all()
+joblib.dump(best_param_of_smote, '../resources/optuna_result/best_param_of_smote.pkl')
 
 
 # function to train cv model with list of the best parameters as df
@@ -261,4 +232,3 @@ def train_predict_model(df_parameters: pd.DataFrame, datasets):
     r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
     print(r.text, end_time_noti)
     return datasets
-
