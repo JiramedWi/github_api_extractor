@@ -6,7 +6,10 @@ import pandas as pd
 import requests
 from sklearn import model_selection
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import precision_score, recall_score, f1_score, matthews_corrcoef, roc_auc_score
+import warnings
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -59,24 +62,41 @@ def train_cv_model(df_parameters: pd.DataFrame, datasets):
                                                subsample=subsample)
         scoring_metrics = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']
         # catch the error of cross_validate
-        try:
-            cv_results = model_selection.cross_validate(gbm_model, x_fit, y_fit, cv=5, n_jobs=-2,
-                                                        scoring=scoring_metrics)
-            if cv_results is not None:
-                result_score = {
-                    'precision_macro': cv_results['test_precision_macro'].mean(),
-                    'recall_macro': cv_results['test_recall_macro'].mean(),
-                    'f1_macro': cv_results['test_f1_macro'].mean(),
-                    'roc_auc': cv_results['test_roc_auc'].mean(),
-                }
-                dataset.update(result_score)
-        except Exception as e:
-            logger.error(f"Error during model evaluation: {e} inside")
-            err_text = f"{e} error in error type {type(e).__name__}\n"
-            r = requests.post(line_url, headers=headers, data={'message':err_text})
-            print(r.text, err_text)
-            err_text = {'error': err_text}
-            dataset.update(err_text)
+        with warnings.catch_warnings():
+            try:
+                warnings.filterwarnings("error", category=UserWarning)
+                warnings.filterwarnings("error", category=UndefinedMetricWarning)
+                cv_results = model_selection.cross_validate(gbm_model, x_fit, y_fit, cv=5, n_jobs=-2,
+                                                            scoring=scoring_metrics)
+                if cv_results is not None:
+                    result_score = {
+                        'precision_macro': cv_results['test_precision_macro'].mean(),
+                        'recall_macro': cv_results['test_recall_macro'].mean(),
+                        'f1_macro': cv_results['test_f1_macro'].mean(),
+                        'roc_auc': cv_results['test_roc_auc'].mean(),
+                    }
+                    dataset.update(result_score)
+            except UndefinedMetricWarning as e:
+                logger.error(f"Error during model evaluation: {e} inside")
+                err_text = f"{e} error in error type {type(e).__name__}\n"
+                r = requests.post(line_url, headers=headers, data={'message':err_text})
+                print(r.text, err_text)
+                err_text = {'error': err_text}
+                dataset.update(err_text)
+            except UserWarning as e:
+                logger.error(f"Error during model evaluation: {e} inside")
+                err_text = f"{e} error in error type {type(e).__name__}\n"
+                r = requests.post(line_url, headers=headers, data={'message':err_text})
+                print(r.text, err_text)
+                err_text = {'error': err_text}
+                dataset.update(err_text)
+            except Exception as e:
+                logger.error(f"Error during model evaluation: {e} inside")
+                err_text = f"{e} error in error type {type(e).__name__}\n"
+                r = requests.post(line_url, headers=headers, data={'message':err_text})
+                print(r.text, err_text)
+                err_text = {'error': err_text}
+                dataset.update(err_text)
     result_score_path = f"../resources/result_optuna_parameter_tuning/cv_score_{get_var_name(datasets)}.pkl"
     joblib.dump(datasets, result_score_path)
     text_logging = f"Result score of {get_var_name(datasets)} has been saved to {result_score_path}"
