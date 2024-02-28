@@ -58,15 +58,25 @@ def train_cv_model(df_parameters: pd.DataFrame, datasets):
                                                min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf,
                                                subsample=subsample)
         scoring_metrics = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']
-        cv_results = model_selection.cross_validate(gbm_model, x_fit, y_fit, cv=5, n_jobs=-2,
-                                                    scoring=scoring_metrics)
-        result_score = {
-            'precision_macro': cv_results['test_precision_macro'].mean(),
-            'recall_macro': cv_results['test_recall_macro'].mean(),
-            'f1_macro': cv_results['test_f1_macro'].mean(),
-            'roc_auc': cv_results['test_roc_auc'].mean(),
-        }
-        dataset.update(result_score)
+        # catch the error of cross_validate
+        try:
+            cv_results = model_selection.cross_validate(gbm_model, x_fit, y_fit, cv=5, n_jobs=-2,
+                                                        scoring=scoring_metrics)
+            if cv_results is not None:
+                result_score = {
+                    'precision_macro': cv_results['test_precision_macro'].mean(),
+                    'recall_macro': cv_results['test_recall_macro'].mean(),
+                    'f1_macro': cv_results['test_f1_macro'].mean(),
+                    'roc_auc': cv_results['test_roc_auc'].mean(),
+                }
+                dataset.update(result_score)
+        except Exception as e:
+            logger.error(f"Error during model evaluation: {e} inside")
+            err_text = f"{e} error in error type {type(e).__name__}\n"
+            r = requests.post(line_url, headers=headers, data={'message':err_text})
+            print(r.text, err_text)
+            err_text = {'error': err_text}
+            dataset.update(err_text)
     result_score_path = f"../resources/result_optuna_parameter_tuning/cv_score_{get_var_name(datasets)}.pkl"
     joblib.dump(datasets, result_score_path)
     text_logging = f"Result score of {get_var_name(datasets)} has been saved to {result_score_path}"
@@ -153,7 +163,6 @@ def train_predict_model(df_parameters: pd.DataFrame, datasets):
 best_param_normal = joblib.load('../resources/optuna_result/best_param_of_normal.pkl')
 best_param_smote = joblib.load('../resources/optuna_result/best_param_of_smote.pkl')
 
-
 datasets_normal = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
 datasets_smote = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_optuna.pkl')
 
@@ -162,5 +171,3 @@ result_smote_cv = train_cv_model(best_param_smote, datasets_smote)
 
 result_normal_predict = train_predict_model(best_param_normal, datasets_normal)
 result_smote_predict = train_predict_model(best_param_smote, datasets_smote)
-
-
