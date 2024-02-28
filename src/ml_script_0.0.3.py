@@ -155,7 +155,7 @@ best_param_smote = joblib.load('../resources/optuna_result/best_param_of_smote.p
 
 
 datasets_normal = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
-datasets_smote = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+datasets_smote = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_optuna.pkl')
 
 result_normal_cv = train_cv_model(best_param_normal, datasets_normal)
 result_smote_cv = train_cv_model(best_param_smote, datasets_smote)

@@ -150,7 +150,7 @@ def set_smote(x_y_fit_blind_transform):
         x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
         x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
         print(f"Total process: {count}")
-    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_optuna.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
