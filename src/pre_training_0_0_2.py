@@ -150,7 +150,7 @@ def set_smote(x_y_fit_blind_transform):
         x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
         x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
         print(f"Total process: {count}")
-    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_optuna.pkl')
+    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_optuna.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
@@ -175,7 +175,7 @@ def normalize_x(x_y_fit_blind_transform, normalize_method):
             x_y_fit_blind_transform_dict['x_blind_test'] = log_transform_tfidf(
                 x_y_fit_blind_transform_dict['x_blind_test'])
     joblib.dump(x_y_fit_blind_transform,
-                f'../resources/result_0.0.2/normalize_{get_var_name(x_y_fit_blind_transform)}_{normalize_method}_transform_0.0.2.pkl')
+                f'../resources/result_0_0_2/normalize_{get_var_name(x_y_fit_blind_transform)}_{normalize_method}_transform_0.0.2.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
@@ -217,7 +217,7 @@ class MachineLearningScript:
                     process_noti = f"Total process: {len(temp_x)} at {name}"
                     r = requests.post(self.line_url, headers=self.headers, data={'message': process_noti})
                     print(r.text)
-                    joblib.dump(temp_x, f'../resources/result_0.0.2/indexing_0.0.2.pkl')
+                    joblib.dump(temp_x, f'../resources/result_0_0_2/indexing_0.0.2.pkl')
         return temp_x
 
     def data_fit_transform(self, terms_x):
@@ -298,7 +298,7 @@ class MachineLearningScript:
                         # end_term_noti = f"Total time of fit transform: {result_time} at {term_x_name} in process at :{count} with y at {y_name}"
                         # r = requests.post(self.line_url, headers=self.headers, data={'message': end_term_noti})
                         # print(r.text)
-        joblib.dump(temp_x, f'../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
+        joblib.dump(temp_x, f'../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')
         end_time_at_last = time.time()
         result_time_last = end_time_at_last - start_time_at_first
         result_time_gmt = time.gmtime(result_time_last)
@@ -310,8 +310,8 @@ class MachineLearningScript:
 
 
 # Start the program
-x = '../resources/result_0.0.2/x_0_0_2.pkl'
-y_source = '../resources/result_0.0.2/y_0_0_2.pkl'
+x = '../resources/result_0_0_2/x_0_0_2.pkl'
+y_source = '../resources/result_0_0_2/y_0_0_2.pkl'
 term_representations = [TfidfVectorizer]
 pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
 n_grams_ranges = [(1, 1), (1, 2)]
@@ -323,13 +323,13 @@ x = run.data_fit_transform(indexer)
 
 # To run smote
 x_y_fit_blind_transform_0_0_2 = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')))
 x_y_fit_blind_SMOTE_transform_0_0_2 = set_smote(x_y_fit_blind_transform_0_0_2)
 
 # To run normalize
-# x_y_fit_blind_transform_0_0_2 = joblib.load(Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')))
+# x_y_fit_blind_transform_0_0_2 = joblib.load(Path(os.path.abspath('../resources/result_0_0_2/x_y_fit_blind_transform_0_0_2.pkl')))
 # x_y_fit_blind_SMOTE_transform_0_0_2 = joblib.load(
-#     Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')))
+#     Path(os.path.abspath('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')))
 #
 # normal_result_for_train_normalize_min_max = normalize_x(x_y_fit_blind_transform_0_0_2, 'min_max')
 # normal_result_for_train_normalize_log = normalize_x(x_y_fit_blind_transform_0_0_2, 'log')

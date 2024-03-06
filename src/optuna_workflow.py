@@ -178,8 +178,8 @@ def find_best_parameter(datasets: list):
     return datasets
 
 
-normal_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
-smote_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+normal_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')
+smote_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
 
 parameter_result_normal = find_best_parameter(normal_result)
 parameter_result_smote = find_best_parameter(smote_result)

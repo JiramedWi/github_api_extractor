@@ -4,7 +4,8 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-result_list = pd.read_csv('../resources/result_0.0.2/x_fit_df_CountVectorizer_pre_process_porterstemmer_n_grams_1_1_for_checking.csv')
+result_list = pd.read_csv(
+    '../resources/result_0_0_2/x_fit_df_CountVectorizer_pre_process_porterstemmer_n_grams_1_1_for_checking.csv')
 # df_temp_x_test = []
 # df_temp_y = []
 # df_temp_y_test = []

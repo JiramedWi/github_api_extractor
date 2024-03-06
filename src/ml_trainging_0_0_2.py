@@ -194,7 +194,7 @@ def train_cv(datasets):
         dataset.update(data_combination_cv_score)
         del data_combination_cv_score
     # Save the model and results path
-    results_cv_path = f"../resources/result_0.0.2/cv_score_{get_var_name(datasets)}.pkl"
+    results_cv_path = f"../resources/result_0_0_2/cv_score_{get_var_name(datasets)}.pkl"
     # result_cv = pd.DataFrame(result_cv)
     joblib.dump(datasets, results_cv_path)
     end_time = datetime.now(tz)
@@ -260,7 +260,7 @@ def train_ml(datasets):
         # dataset['predict_results'] = results_predict
         # results_predict.append(data_combination_result_score)
 
-    results_predict_path = f"../resources/result_0.0.2/predict_{get_var_name(datasets)}.pkl"
+    results_predict_path = f"../resources/result_0_0_2/predict_{get_var_name(datasets)}.pkl"
     # results_predict = pd.DataFrame(results_predict)
     joblib.dump(datasets, results_predict_path)
     end_time = datetime.now(tz)
@@ -284,17 +284,17 @@ start_noti = f"start to train CV and ML at: {start_time_announce}"
 r = requests.post(line_url, headers=headers, data={'message': start_noti})
 print(r.text, start_time_announce)
 
-normal_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')
+normal_result_for_train = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_0_0_2.pkl')
 normal_result_for_train_normalize_min_max = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
 normal_result_for_train_normalize_log = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
 
-SMOTE_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+SMOTE_result_for_train = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
 SMOTE_result_for_train_normalize_min_max = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
 SMOTE_result_for_train_normalize_log = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
 
 # normal result
 result_normal_cv = train_cv(normal_result_for_train)

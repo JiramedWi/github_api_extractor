@@ -93,8 +93,8 @@ def loop_dict_optuna_list_to_df(dict_list, list_remover):
 cv_score_normal = joblib.load('../resources/optuna_result/cv_score_normal_result.pkl')
 cv_score_smote = joblib.load('../resources/optuna_result/cv_score_smote_result.pkl')
 
-normal_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
-smote_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+normal_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')
+smote_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
 
 cv_score_normal_df = loop_dict_optuna_list_to_df(cv_score_normal, ['x_fit', 'x_blind_test'])
 cv_score_smote_df = loop_dict_optuna_list_to_df(cv_score_smote, ['x_fit', 'x_blind_test'])
