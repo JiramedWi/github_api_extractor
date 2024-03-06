@@ -183,8 +183,8 @@ def train_predict_model(df_parameters: pd.DataFrame, datasets):
 best_param_normal = joblib.load('../resources/optuna_result/best_param_of_normal.pkl')
 best_param_smote = joblib.load('../resources/optuna_result/best_param_of_smote.pkl')
 
-datasets_normal = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
-datasets_smote = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_optuna.pkl')
+datasets_normal = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')
+datasets_smote = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_optuna.pkl')
 
 result_normal_cv = train_cv_model(best_param_normal, datasets_normal)
 result_smote_cv = train_cv_model(best_param_smote, datasets_smote)
