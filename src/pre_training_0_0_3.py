@@ -120,6 +120,7 @@ def set_lda(x_y_fit_blind_transform):
     start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
     print("start to set lda at: " + start_time_gmt)
     count = 0
+    variable_name = get_var_name(x_y_fit_blind_transform)
     for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
         # count loop
         count += 1
@@ -129,7 +130,7 @@ def set_lda(x_y_fit_blind_transform):
         x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
         x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
         print(f"Total process: {count}")
-    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/x_y__transform_optuna.pkl')
+    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_LDA.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
@@ -144,6 +145,7 @@ def set_lsa(x_y_fit_blind_transform):
     start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
     print("start to set lsa at: " + start_time_gmt)
     count = 0
+    variable_name = get_var_name(x_y_fit_blind_transform)
     for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
         # count loop
         count += 1
@@ -153,7 +155,7 @@ def set_lsa(x_y_fit_blind_transform):
         x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
         x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
         print(f"Total process: {count}")
-    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/x_y_lsa_transform_optuna.pkl')
+    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_LSA.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
@@ -173,16 +175,15 @@ def set_smote(x_y_fit_blind_transform, smote_type):
         # count loop
         count += 1
         # if statement for set different smote
-        x_smote, y_smote = smote_type.sample(x_y_fit_blind_transform_dict['x_fit'],
-                                             x_y_fit_blind_transform_dict['y_fit'])
-        print('asdf')
+        X = x_y_fit_blind_transform_dict['x_fit'].toarray()
+        y = x_y_fit_blind_transform_dict['y_fit']
+        x_smote, y_smote = smote_type.sample(X, y)
         # Set SMOTE oversampling
         # smote = SMOTE(sampling_strategy='auto', random_state=42)
         # x_smote, y_smote = smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
         #                                       x_y_fit_blind_transform_dict['y_fit'])
         # Check value is smoted or not
-        if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
-                x_y_fit_blind_transform_dict['y_fit'].shape[0]:
+        if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > x_y_fit_blind_transform_dict['y_fit'].shape[0]:
             print("set Balanced: x value old = " + str(
                 x_y_fit_blind_transform_dict['x_fit'].shape[0]) + ", x value new = "
                   + str(x_smote.shape[0]) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape[0]) +
@@ -206,7 +207,7 @@ def set_smote(x_y_fit_blind_transform, smote_type):
         x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
         x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
         print(f"Total process: {count}")
-    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_{smote_type}_transform_optuna.pkl')
+    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_{smote_type}.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
@@ -329,7 +330,7 @@ class MachineLearningScript:
                         # end_term_noti = f"Total time of fit transform: {result_time} at {term_x_name} in process at :{count} with y at {y_name}"
                         # r = requests.post(self.line_url, headers=self.headers, data={'message': end_term_noti})
                         # print(r.text)
-        joblib.dump(temp_x, f'../resources/result_0_0_3/x_y_fit_blind_transform_optuna.pkl')
+        joblib.dump(temp_x, f'../resources/result_0_0_3/x_y_fit_normal.pkl')
         end_time_at_last = time.time()
         result_time_last = end_time_at_last - start_time_at_first
         result_time_gmt = time.gmtime(result_time_last)
@@ -353,13 +354,19 @@ class MachineLearningScript:
 # x = run.data_fit_transform(indexer)
 
 # To run smote
-smote_prowsyn = sv.ProWSyn(random_state=42, n_jobs=-2)
+smote_prowsyn = sv.ProWSyn(random_state=42)
 smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
-x_y_normal_transform_0_0_3 = joblib.load(
-    Path(os.path.abspath('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')))
-x_y_fit_blind_SMOTE_transform_0_0_3_ProWSyn = set_smote(x_y_normal_transform_0_0_3, smote_prowsyn)
-# x_y_fit_blind_SMOTE_transform_0_0_3_polynom_fit = set_smote(x_y_fit_blind_transform_0_0_3, smote_polynom_fit)
+x_y_normal = joblib.load(
+    Path(os.path.abspath('../resources/result_0_0_3/x_y_fit_normal.pkl')))
+x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal, smote_prowsyn)
+x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal, smote_polynom_fit)
 
 
 # To run lda
-x_y_fit_normal_lda = set_lda(x_y_normal_transform_0_0_3)
+x_y_fit_normal_lda = set_lda(x_y_normal)
+x_y_fit_SMOTE_ProWSyn_lda = set_lda(x_y_fit_SMOTE_ProWSyn)
+x_y_fit_SMOTE_Polynom_fit_lda = set_lda(x_y_fit_SMOTE_ProWSyn)
+
+x_y_fit_normal_lsa = set_lsa(x_y_normal)
+x_y_fit_SMOTE_ProWSyn_lsa = set_lsa(x_y_fit_SMOTE_ProWSyn)
+x_y_fit_SMOTE_Polynom_fit_lsa = set_lsa(x_y_fit_SMOTE_ProWSyn)
