@@ -114,6 +114,31 @@ def log_transform_tfidf(matrix):
     return np.log1p(matrix)
 
 
+def normalize_x(x_y_fit_blind_transform, normalize_method):
+    start_time = time.time()
+    start_time_gmt = time.gmtime(start_time)
+    start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
+    print(
+        f"start to normalize at: {start_time_gmt} with {get_var_name(x_y_fit_blind_transform)} normalize method: {normalize_method}")
+    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+        if normalize_method == 'min_max':
+            x_y_fit_blind_transform_dict['x_fit'] = scale_sparse_matrix(x_y_fit_blind_transform_dict['x_fit'])
+            x_y_fit_blind_transform_dict['x_blind_test'] = scale_sparse_matrix(
+                x_y_fit_blind_transform_dict['x_blind_test'])
+        elif normalize_method == 'log':
+            x_y_fit_blind_transform_dict['x_fit'] = log_transform_tfidf(x_y_fit_blind_transform_dict['x_fit'])
+            x_y_fit_blind_transform_dict['x_blind_test'] = log_transform_tfidf(
+                x_y_fit_blind_transform_dict['x_blind_test'])
+    joblib.dump(x_y_fit_blind_transform,
+                f'../resources/result_0_0_3/normalize_{get_var_name(x_y_fit_blind_transform)}_{normalize_method}.pkl')
+    end_time = time.time()
+    result_time = end_time - start_time
+    result_time_gmt = time.gmtime(result_time)
+    result_time = time.strftime("%H:%M:%S", result_time_gmt)
+    print(f"Total time: {result_time}")
+    return x_y_fit_blind_transform
+
+
 def set_lda(x_y_fit_blind_transform):
     start_time = time.time()
     start_time_gmt = time.gmtime(start_time)
@@ -183,7 +208,8 @@ def set_smote(x_y_fit_blind_transform, smote_type):
         # x_smote, y_smote = smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
         #                                       x_y_fit_blind_transform_dict['y_fit'])
         # Check value is smoted or not
-        if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > x_y_fit_blind_transform_dict['y_fit'].shape[0]:
+        if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
+                x_y_fit_blind_transform_dict['y_fit'].shape[0]:
             print("set Balanced: x value old = " + str(
                 x_y_fit_blind_transform_dict['x_fit'].shape[0]) + ", x value new = "
                   + str(x_smote.shape[0]) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape[0]) +
@@ -214,8 +240,6 @@ def set_smote(x_y_fit_blind_transform, smote_type):
     result_time = time.strftime("%H:%M:%S", result_time_gmt)
     print(f"Total time: {result_time}")
     return x_y_fit_blind_transform
-
-
 
 
 class MachineLearningScript:
@@ -354,19 +378,21 @@ class MachineLearningScript:
 # x = run.data_fit_transform(indexer)
 
 # To run smote
-smote_prowsyn = sv.ProWSyn(random_state=42)
-smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
+# smote_prowsyn = sv.ProWSyn(random_state=42)
+# smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
 x_y_normal = joblib.load(
     Path(os.path.abspath('../resources/result_0_0_3/x_y_fit_normal.pkl')))
-x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal, smote_prowsyn)
-x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal, smote_polynom_fit)
-
+# x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal, smote_prowsyn)
+# x_y_fit_SMOTE_ProWSyn = joblib.load('../resources/result_0_0_3/x_y_normal_smote_prowsyn.pkl')
+# x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal, smote_polynom_fit)
+x_y_fit_SMOTE_polynom_fit = joblib.load('../resources/result_0_0_3/x_y_normal_smote_polynom_fit.pkl')
+x_y_fit_SMOTE_polynom_fit = normalize_x(x_y_fit_SMOTE_polynom_fit, 'min_max')
 
 # To run lda
-x_y_fit_normal_lda = set_lda(x_y_normal)
-x_y_fit_SMOTE_ProWSyn_lda = set_lda(x_y_fit_SMOTE_ProWSyn)
-x_y_fit_SMOTE_Polynom_fit_lda = set_lda(x_y_fit_SMOTE_ProWSyn)
+# x_y_fit_normal_lda = set_lda(x_y_normal)
+# x_y_fit_SMOTE_ProWSyn_lda = set_lda(x_y_fit_SMOTE_ProWSyn)
+x_y_fit_SMOTE_Polynom_fit_lda = set_lda(x_y_fit_SMOTE_polynom_fit)
 
-x_y_fit_normal_lsa = set_lsa(x_y_normal)
-x_y_fit_SMOTE_ProWSyn_lsa = set_lsa(x_y_fit_SMOTE_ProWSyn)
-x_y_fit_SMOTE_Polynom_fit_lsa = set_lsa(x_y_fit_SMOTE_ProWSyn)
+# x_y_fit_normal_lsa = set_lsa(x_y_normal)
+# x_y_fit_SMOTE_ProWSyn_lsa = set_lsa(x_y_fit_SMOTE_ProWSyn)
+x_y_fit_SMOTE_Polynom_fit_lsa = set_lsa(x_y_fit_SMOTE_polynom_fit)
