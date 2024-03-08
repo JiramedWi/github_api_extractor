@@ -382,17 +382,20 @@ class MachineLearningScript:
 # smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
 x_y_normal = joblib.load(
     Path(os.path.abspath('../resources/result_0_0_3/x_y_fit_normal.pkl')))
+x_y_normal = normalize_x(x_y_normal, 'min_max')
 # x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal, smote_prowsyn)
-# x_y_fit_SMOTE_ProWSyn = joblib.load('../resources/result_0_0_3/x_y_normal_smote_prowsyn.pkl')
+x_y_fit_SMOTE_ProWSyn = joblib.load('../resources/result_0_0_3/x_y_normal_smote_prowsyn.pkl')
+x_y_fit_SMOTE_ProWSyn = normalize_x(x_y_fit_SMOTE_ProWSyn, 'min_max')
 # x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal, smote_polynom_fit)
 x_y_fit_SMOTE_polynom_fit = joblib.load('../resources/result_0_0_3/x_y_normal_smote_polynom_fit.pkl')
 x_y_fit_SMOTE_polynom_fit = normalize_x(x_y_fit_SMOTE_polynom_fit, 'min_max')
 
+
 # To run lda
-# x_y_fit_normal_lda = set_lda(x_y_normal)
-# x_y_fit_SMOTE_ProWSyn_lda = set_lda(x_y_fit_SMOTE_ProWSyn)
+x_y_fit_normal_lda = set_lda(x_y_normal)
+x_y_fit_SMOTE_ProWSyn_lda = set_lda(x_y_fit_SMOTE_ProWSyn)
 x_y_fit_SMOTE_Polynom_fit_lda = set_lda(x_y_fit_SMOTE_polynom_fit)
 
-# x_y_fit_normal_lsa = set_lsa(x_y_normal)
-# x_y_fit_SMOTE_ProWSyn_lsa = set_lsa(x_y_fit_SMOTE_ProWSyn)
+x_y_fit_normal_lsa = set_lsa(x_y_normal)
+x_y_fit_SMOTE_ProWSyn_lsa = set_lsa(x_y_fit_SMOTE_ProWSyn)
 x_y_fit_SMOTE_Polynom_fit_lsa = set_lsa(x_y_fit_SMOTE_polynom_fit)
