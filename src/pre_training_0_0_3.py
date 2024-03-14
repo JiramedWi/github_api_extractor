@@ -118,8 +118,9 @@ def normalize_x(x_y_fit_blind_transform, normalize_method):
     start_time = time.time()
     start_time_gmt = time.gmtime(start_time)
     start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
+    name_var = get_var_name(x_y_fit_blind_transform)
     print(
-        f"start to normalize at: {start_time_gmt} with {get_var_name(x_y_fit_blind_transform)} normalize method: {normalize_method}")
+        f"start to normalize at: {start_time_gmt} with {name_var} normalize method: {normalize_method}")
     for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
         if normalize_method == 'min_max':
             x_y_fit_blind_transform_dict['x_fit'] = scale_sparse_matrix(x_y_fit_blind_transform_dict['x_fit'])
@@ -130,13 +131,49 @@ def normalize_x(x_y_fit_blind_transform, normalize_method):
             x_y_fit_blind_transform_dict['x_blind_test'] = log_transform_tfidf(
                 x_y_fit_blind_transform_dict['x_blind_test'])
     joblib.dump(x_y_fit_blind_transform,
-                f'../resources/result_0_0_3/normalize_{get_var_name(x_y_fit_blind_transform)}_{normalize_method}.pkl')
+                f'../resources/result_0_0_3/normalized_{name_var}_with_{normalize_method}.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
     result_time = time.strftime("%H:%M:%S", result_time_gmt)
     print(f"Total time: {result_time}")
     return x_y_fit_blind_transform
+
+
+def set_lda_lsa(x_y_fit_blind_transform):
+    start_time = time.time()
+    start_time_gmt = time.gmtime(start_time)
+    start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
+    print("start to set lda and lsa at: " + start_time_gmt)
+    count = 0
+    variable_name = get_var_name(x_y_fit_blind_transform)
+    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+        # condition for TF using LDA
+        if x_y_fit_blind_transform_dict['combination'].split('_')[0] == 'CountVectorizer':
+            # count loop
+            count += 1
+            lda = LatentDirichletAllocation(n_components=500, random_state=42)
+            x_lda_fit = lda.fit_transform(x_y_fit_blind_transform_dict['x_fit'])
+            x_lda_blind_test = lda.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+            x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
+            x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
+        # condition for TFidf using LSA
+        elif x_y_fit_blind_transform_dict['combination'].split('_')[0] == 'TfidfVectorizer':
+            # count loop
+            count += 1
+            lsa = TruncatedSVD(n_components=500, random_state=42)
+            x_lsa_fit = lsa.fit_transform(x_y_fit_blind_transform_dict['x_fit'])
+            x_lsa_blind_test = lsa.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+            x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
+            x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
+        print(f"Total process: {count}")
+        joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_with_LDA_LSA.pkl')
+        end_time = time.time()
+        result_time = end_time - start_time
+        result_time_gmt = time.gmtime(result_time)
+        result_time = time.strftime("%H:%M:%S", result_time_gmt)
+        print(f"Total time: {result_time}")
+        return x_y_fit_blind_transform
 
 
 def set_lda(x_y_fit_blind_transform):
@@ -196,6 +233,7 @@ def set_smote(x_y_fit_blind_transform, smote_type):
     print("start to set smote at: " + start_time_gmt)
     count = 0
     variable_name = get_var_name(x_y_fit_blind_transform)
+    smote_type_name = get_var_name(smote_type)
     for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
         # count loop
         count += 1
@@ -228,12 +266,14 @@ def set_smote(x_y_fit_blind_transform, smote_type):
         ratio_class_0_train_smote = class_distribution_train_smote[0] / len(y_smote)
         print(f"\nRatio of class '1' in the training smote set: {ratio_class_1_train_smote:.2%}")
         print(f"\nRatio of class '0' in the training smote set: {ratio_class_0_train_smote:.2%}")
+        x_smote = csr_matrix(x_smote)
+        y_smote = csr_matrix(y_smote)
         x_y_fit_blind_transform_dict['x_fit'] = x_smote
         x_y_fit_blind_transform_dict['y_fit'] = y_smote
         x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
         x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
         print(f"Total process: {count}")
-    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_{smote_type}.pkl')
+    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_{smote_type_name}.pkl')
     end_time = time.time()
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
@@ -255,6 +295,10 @@ class MachineLearningScript:
         self.headers = {'content-type': 'application/x-www-form-urlencoded',
                         'Authorization': 'Bearer ' + 'nHKxy92Z03QXUNvN3jfc61AV6fnPgrPC1cVuxeqWzE0'}
 
+    def call_notify(self, message):
+        r = requests.post(self.line_url, headers=self.headers, data={'message': message})
+        print(r.text)
+
     def indexing_x(self):
         temp_x = []
         for term_represented in self.term_represented:
@@ -271,8 +315,7 @@ class MachineLearningScript:
                     }
                     temp_x.append(data_combined)
                     process_noti = f"Total process: {len(temp_x)} at {name}"
-                    r = requests.post(self.line_url, headers=self.headers, data={'message': process_noti})
-                    print(r.text)
+                    self.call_notify(process_noti)
                     joblib.dump(temp_x, f'../resources/result_0_0_3/indexing_0.0.3.pkl')
         return temp_x
 
@@ -286,8 +329,7 @@ class MachineLearningScript:
         start_time_gmt_at_first = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt_at_first)
         start_noti_fit = (f"Total of Terms_x: {len(terms_x)}" + f"Total of y_list: {len(y_list)}"
                           + f"start to fit data at: {start_time_gmt_at_first}")
-        r = requests.post(self.line_url, headers=self.headers, data={'message': start_noti_fit})
-        print(r.text)
+        self.call_notify(start_noti_fit)
         for y_dict in y_list:
             for y_name, y_value in y_dict.items():
                 print(f"start at y_dict name: {y_name}")
@@ -354,48 +396,49 @@ class MachineLearningScript:
                         # end_term_noti = f"Total time of fit transform: {result_time} at {term_x_name} in process at :{count} with y at {y_name}"
                         # r = requests.post(self.line_url, headers=self.headers, data={'message': end_term_noti})
                         # print(r.text)
-        joblib.dump(temp_x, f'../resources/result_0_0_3/x_y_fit_normal.pkl')
+        joblib.dump(temp_x, f'../resources/result_0_0_3/x_y_fit_normal_0_0_3.pkl')
         end_time_at_last = time.time()
         result_time_last = end_time_at_last - start_time_at_first
         result_time_gmt = time.gmtime(result_time_last)
         result_time_last = time.strftime("%H:%M:%S", result_time_gmt)
         result_noti = f"Total time: {result_time_last}" + f"While start time at first: {start_time_gmt_at_first}"
-        r = requests.post(self.line_url, headers=self.headers, data={'message': result_noti})
-        print(r.text)
+        self.call_notify(result_noti)
         return temp_x
 
 
-# Start the program
-# x = '../resources/result_0_0_2/x_0_0_2.pkl'
-# y_source = '../resources/result_0_0_2/y_0_0_2.pkl'
-# term_representations = [TfidfVectorizer]
-# pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
-# n_grams_ranges = [(1, 1), (1, 2)]
+# # Start the program
+x = '../resources/result_0_0_2/x_0_0_2.pkl'
+y_source = '../resources/result_0_0_2/y_0_0_2.pkl'
+term_representations = [CountVectorizer, TfidfVectorizer]
+pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
+n_grams_ranges = [(1, 1), (1, 2)]
 
-# To run datafit
-# run = MachineLearningScript(x, y_source, term_representations, pre_process_steps, n_grams_ranges)
+# # To run datafit
+run = MachineLearningScript(x, y_source, term_representations, pre_process_steps, n_grams_ranges)
 # indexer = run.indexing_x()
 # x = run.data_fit_transform(indexer)
 
+# # To run lda lsa
+x_y_fit_normal = joblib.load('../resources/result_0_0_3/x_y_fit_normal_0_0_3.pkl')
+x_y_normal_with_lda_lsa = set_lda_lsa(x_y_fit_normal)
+run.call_notify("Finish to set lda lsa")
+time.sleep(10)
+
+
 # To run smote
-# smote_prowsyn = sv.ProWSyn(random_state=42)
-# smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
-x_y_normal = joblib.load(
-    Path(os.path.abspath('../resources/result_0_0_3/x_y_fit_normal.pkl')))
-x_y_normal = normalize_x(x_y_normal, 'min_max')
-# x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal, smote_prowsyn)
-x_y_fit_SMOTE_ProWSyn = joblib.load('../resources/result_0_0_3/x_y_normal_smote_prowsyn.pkl')
-x_y_fit_SMOTE_ProWSyn = normalize_x(x_y_fit_SMOTE_ProWSyn, 'min_max')
-# x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal, smote_polynom_fit)
-x_y_fit_SMOTE_polynom_fit = joblib.load('../resources/result_0_0_3/x_y_normal_smote_polynom_fit.pkl')
-x_y_fit_SMOTE_polynom_fit = normalize_x(x_y_fit_SMOTE_polynom_fit, 'min_max')
+smote_prowsyn = sv.ProWSyn(random_state=42)
+smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
+x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal_with_lda_lsa, smote_prowsyn)
+x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal_with_lda_lsa, smote_polynom_fit)
+run.call_notify("Finish to set smote")
+time.sleep(10)
 
 
-# To run lda
-x_y_fit_normal_lda = set_lda(x_y_normal)
-x_y_fit_SMOTE_ProWSyn_lda = set_lda(x_y_fit_SMOTE_ProWSyn)
-x_y_fit_SMOTE_Polynom_fit_lda = set_lda(x_y_fit_SMOTE_polynom_fit)
+# To run normalize
+x_y_fit_normal_normalized = normalize_x(x_y_fit_normal, 'min_max')
+x_y_normal_with_lda_lsa_normalized = normalize_x(x_y_normal_with_lda_lsa, 'min_max')
+x_y_fit_SMOTE_ProWSyn_normalized = normalize_x(x_y_fit_SMOTE_ProWSyn, 'min_max')
+x_y_fit_SMOTE_polynom_fit_normalized = normalize_x(x_y_fit_SMOTE_polynom_fit, 'min_max')
+run.call_notify("Finish to normalize")
 
-x_y_fit_normal_lsa = set_lsa(x_y_normal)
-x_y_fit_SMOTE_ProWSyn_lsa = set_lsa(x_y_fit_SMOTE_ProWSyn)
-x_y_fit_SMOTE_Polynom_fit_lsa = set_lsa(x_y_fit_SMOTE_polynom_fit)
+
