@@ -140,92 +140,6 @@ def normalize_x(x_y_fit_blind_transform, normalize_method):
     return x_y_fit_blind_transform
 
 
-def set_lda_lsa(x_y_fit_blind_transform):
-    start_time = time.time()
-    start_time_gmt = time.gmtime(start_time)
-    start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
-    print("start to set lda and lsa at: " + start_time_gmt)
-    count = 0
-    variable_name = get_var_name(x_y_fit_blind_transform)
-    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
-        # condition for TF using LDA
-        if x_y_fit_blind_transform_dict['combination'].split('_')[0] == 'CountVectorizer':
-            # count loop
-            count += 1
-            lda = LatentDirichletAllocation(n_components=500, random_state=42)
-            x_lda_fit = lda.fit_transform(x_y_fit_blind_transform_dict['x_fit'])
-            x_lda_blind_test = lda.transform(x_y_fit_blind_transform_dict['x_blind_test'])
-            x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
-            x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
-        # condition for TFidf using LSA
-        elif x_y_fit_blind_transform_dict['combination'].split('_')[0] == 'TfidfVectorizer':
-            # count loop
-            count += 1
-            lsa = TruncatedSVD(n_components=500, random_state=42)
-            x_lsa_fit = lsa.fit_transform(x_y_fit_blind_transform_dict['x_fit'])
-            x_lsa_blind_test = lsa.transform(x_y_fit_blind_transform_dict['x_blind_test'])
-            x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
-            x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
-        print(f"Total process: {count}")
-        joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_with_LDA_LSA.pkl')
-        end_time = time.time()
-        result_time = end_time - start_time
-        result_time_gmt = time.gmtime(result_time)
-        result_time = time.strftime("%H:%M:%S", result_time_gmt)
-        print(f"Total time: {result_time}")
-        return x_y_fit_blind_transform
-
-
-def set_lda(x_y_fit_blind_transform):
-    start_time = time.time()
-    start_time_gmt = time.gmtime(start_time)
-    start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
-    print("start to set lda at: " + start_time_gmt)
-    count = 0
-    variable_name = get_var_name(x_y_fit_blind_transform)
-    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
-        # count loop
-        count += 1
-        lda = LatentDirichletAllocation(n_components=500, random_state=42)
-        x_lda_fit = lda.fit_transform(x_y_fit_blind_transform_dict['x_fit'])
-        x_lda_blind_test = lda.transform(x_y_fit_blind_transform_dict['x_blind_test'])
-        x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
-        x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
-        print(f"Total process: {count}")
-    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_LDA.pkl')
-    end_time = time.time()
-    result_time = end_time - start_time
-    result_time_gmt = time.gmtime(result_time)
-    result_time = time.strftime("%H:%M:%S", result_time_gmt)
-    print(f"Total time: {result_time}")
-    return x_y_fit_blind_transform
-
-
-def set_lsa(x_y_fit_blind_transform):
-    start_time = time.time()
-    start_time_gmt = time.gmtime(start_time)
-    start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
-    print("start to set lsa at: " + start_time_gmt)
-    count = 0
-    variable_name = get_var_name(x_y_fit_blind_transform)
-    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
-        # count loop
-        count += 1
-        lsa = TruncatedSVD(n_components=500, random_state=42)
-        x_lsa_fit = lsa.fit_transform(x_y_fit_blind_transform_dict['x_fit'])
-        x_lsa_blind_test = lsa.transform(x_y_fit_blind_transform_dict['x_blind_test'])
-        x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
-        x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
-        print(f"Total process: {count}")
-    joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_LSA.pkl')
-    end_time = time.time()
-    result_time = end_time - start_time
-    result_time_gmt = time.gmtime(result_time)
-    result_time = time.strftime("%H:%M:%S", result_time_gmt)
-    print(f"Total time: {result_time}")
-    return x_y_fit_blind_transform
-
-
 def set_smote(x_y_fit_blind_transform, smote_type):
     start_time = time.time()
     start_time_gmt = time.gmtime(start_time)
@@ -237,15 +151,13 @@ def set_smote(x_y_fit_blind_transform, smote_type):
     for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
         # count loop
         count += 1
-        # if statement for set different smote
-        X = x_y_fit_blind_transform_dict['x_fit'].toarray()
+        # if statement for type x_fit is ndarray or not
+        if type(x_y_fit_blind_transform_dict['x_fit']) is np.ndarray:
+            X = x_y_fit_blind_transform_dict['x_fit']
+        else:
+            X = x_y_fit_blind_transform_dict['x_fit'].toarray()
         y = x_y_fit_blind_transform_dict['y_fit']
         x_smote, y_smote = smote_type.sample(X, y)
-        # Set SMOTE oversampling
-        # smote = SMOTE(sampling_strategy='auto', random_state=42)
-        # x_smote, y_smote = smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
-        #                                       x_y_fit_blind_transform_dict['y_fit'])
-        # Check value is smoted or not
         if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
                 x_y_fit_blind_transform_dict['y_fit'].shape[0]:
             print("set Balanced: x value old = " + str(
@@ -266,8 +178,6 @@ def set_smote(x_y_fit_blind_transform, smote_type):
         ratio_class_0_train_smote = class_distribution_train_smote[0] / len(y_smote)
         print(f"\nRatio of class '1' in the training smote set: {ratio_class_1_train_smote:.2%}")
         print(f"\nRatio of class '0' in the training smote set: {ratio_class_0_train_smote:.2%}")
-        x_smote = csr_matrix(x_smote)
-        y_smote = csr_matrix(y_smote)
         x_y_fit_blind_transform_dict['x_fit'] = x_smote
         x_y_fit_blind_transform_dict['y_fit'] = y_smote
         x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
@@ -367,10 +277,12 @@ class MachineLearningScript:
                         r = requests.post(self.line_url, headers=self.headers, data={'message': start_noti})
                         print(r.text)
                         term_x_value.fit(x_cleaned)
+                        term_whole_x = term_x_value.transform(x_cleaned)
                         term_x_train = term_x_value.transform(x_fit)
                         term_x_test = term_x_value.transform(x_blind_test)
                         data_combination = {
                             "combination": term_x_name,
+                            "whole_x_fit": term_whole_x,
                             "x_fit": term_x_train,
                             "x_blind_test": term_x_test,
                             "y_name": y_name,
@@ -405,6 +317,47 @@ class MachineLearningScript:
         self.call_notify(result_noti)
         return temp_x
 
+    def set_lda_lsa(self, x_y_fit_blind_transform):
+        start_time = time.time()
+        start_time_gmt = time.gmtime(start_time)
+        start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
+        start_noti = "start to set lda and lsa at: " + start_time_gmt
+        self.call_notify(start_noti)
+        count = 0
+        variable_name = get_var_name(x_y_fit_blind_transform)
+        for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+            # condition for TF using LDA
+            term_condition = x_y_fit_blind_transform_dict['combination'].split('_')[0]
+            print(f"this is loop is on {term_condition}")
+            if term_condition == 'CountVectorizer':
+                # count loop
+                count += 1
+                lda = LatentDirichletAllocation(n_components=500, random_state=42)
+                lda.fit(x_y_fit_blind_transform_dict['whole_x_fit'])
+                x_lda_fit = lda.transform(x_y_fit_blind_transform_dict['x_fit'])
+                x_lda_blind_test = lda.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+                x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
+                x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
+            # condition for TFidf using LSA
+            elif term_condition == 'TfidfVectorizer':
+                # count loop
+                count += 1
+                lsa = TruncatedSVD(n_components=500, random_state=42)
+                lsa.fit(x_y_fit_blind_transform_dict['whole_x_fit'])
+                x_lsa_fit = lsa.transform(x_y_fit_blind_transform_dict['x_fit'])
+                x_lsa_blind_test = lsa.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+                x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
+                x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
+        print(f"Total process: {count}")
+        joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_with_LDA_LSA.pkl')
+        end_time = time.time()
+        result_time = end_time - start_time
+        result_time_gmt = time.gmtime(result_time)
+        result_time = time.strftime("%H:%M:%S", result_time_gmt)
+        totol_noti = f"Done!!! total time to do lda and lsa: {result_time}"
+        self.call_notify(totol_noti)
+        return x_y_fit_blind_transform
+
 
 # # Start the program
 x = '../resources/result_0_0_2/x_0_0_2.pkl'
@@ -415,30 +368,30 @@ n_grams_ranges = [(1, 1), (1, 2)]
 
 # # To run datafit
 run = MachineLearningScript(x, y_source, term_representations, pre_process_steps, n_grams_ranges)
-# indexer = run.indexing_x()
-# x = run.data_fit_transform(indexer)
+indexer = run.indexing_x()
+x = run.data_fit_transform(indexer)
+run.call_notify("Finish 1st step pre-process")
+time.sleep(10)
 
 # # To run lda lsa
 x_y_fit_normal = joblib.load('../resources/result_0_0_3/x_y_fit_normal_0_0_3.pkl')
-x_y_normal_with_lda_lsa = set_lda_lsa(x_y_fit_normal)
+x_y_normal_with_lda_lsa = run.set_lda_lsa(x_y_fit_normal)
+# x_y_normal_with_lda_lsa = joblib.load('../resources/result_0_0_3/x_y_fit_normal_with_LDA_LSA.pkl')
 run.call_notify("Finish to set lda lsa")
 time.sleep(10)
 
-
 # To run smote
-smote_prowsyn = sv.ProWSyn(random_state=42)
-smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
-x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal_with_lda_lsa, smote_prowsyn)
-x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal_with_lda_lsa, smote_polynom_fit)
-run.call_notify("Finish to set smote")
-time.sleep(10)
-
-
-# To run normalize
-x_y_fit_normal_normalized = normalize_x(x_y_fit_normal, 'min_max')
-x_y_normal_with_lda_lsa_normalized = normalize_x(x_y_normal_with_lda_lsa, 'min_max')
-x_y_fit_SMOTE_ProWSyn_normalized = normalize_x(x_y_fit_SMOTE_ProWSyn, 'min_max')
-x_y_fit_SMOTE_polynom_fit_normalized = normalize_x(x_y_fit_SMOTE_polynom_fit, 'min_max')
-run.call_notify("Finish to normalize")
-
-
+# smote_prowsyn = sv.ProWSyn(random_state=42)
+# smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
+# x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal_with_lda_lsa, smote_prowsyn)
+# x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal_with_lda_lsa, smote_polynom_fit)
+# run.call_notify("Finish to set smote")
+# time.sleep(10)
+#
+#
+# # To run normalize
+# x_y_fit_normal_normalized = normalize_x(x_y_fit_normal, 'min_max')
+# x_y_normal_with_lda_lsa_normalized = normalize_x(x_y_normal_with_lda_lsa, 'min_max')
+# x_y_fit_SMOTE_ProWSyn_normalized = normalize_x(x_y_fit_SMOTE_ProWSyn, 'min_max')
+# x_y_fit_SMOTE_polynom_fit_normalized = normalize_x(x_y_fit_SMOTE_polynom_fit, 'min_max')
+# run.call_notify("Finish to normalize")
