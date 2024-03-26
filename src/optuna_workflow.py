@@ -178,8 +178,50 @@ def find_best_parameter(datasets: list):
     return datasets
 
 
-normal_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')
-smote_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+normal_dataset = joblib.load('../resources/result_0_0_3/x_y_fit_normal_0_0_3.pkl')
+smote_dataset_polynom_fit = joblib.load('../resources/result_0_0_3/x_y_fit_normal_smote_polynom_fit.pkl')
+smote_dataset_prowsyn_fit = joblib.load('../resources/result_0_0_3/x_y_fit_normal_smote_prowsyn.pkl')
 
-parameter_result_normal = find_best_parameter(normal_result)
-parameter_result_smote = find_best_parameter(smote_result)
+normal_dataset_lda_lsa = joblib.load('../resources/result_0_0_3/x_y_fit_normal_with_LDA_LSA.pkl')
+smote_dataset_lda_lsa_polynom = joblib.load('../resources/result_0_0_3/x_y_normal_with_lda_lsa_smote_polynom_fit.pkl')
+smote_dataset_lda_lsa_prowsyn = joblib.load('../resources/result_0_0_3/x_y_normal_with_lda_lsa_smote_prowsyn.pkl')
+
+normal_datset_normalized = joblib.load('../resources/result_0_0_3/normalized_x_y_fit_normal_with_min_max.pkl')
+normal_dataset_lda_lsa_normalized = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_normal_with_lda_lsa_with_min_max.pkl')
+smote_dataset_normalized_polynom = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_fit_normal_SMOTE_polynom_fit_with_min_max.pkl')
+smote_dataset_normalized_prowsyn = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_fit_normal_SMOTE_ProWSyn_with_min_max.pkl')
+smote_dataset_lda_lsa_normalized_polynom = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_fit_normal_SMOTE_polynom_fit_with_min_max.pkl')
+smote_dataset_lda_lsa_normalized_prowsyn = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_fit_normal_SMOTE_ProWSyn_with_min_max.pkl')
+
+parameter_result_normal = find_best_parameter(normal_dataset)
+parameter_result_smote_polynom = find_best_parameter(smote_dataset_polynom_fit)
+parameter_result_smote_prowsyn = find_best_parameter(smote_dataset_prowsyn_fit)
+
+parameter_result_normal_lda_lsa = find_best_parameter(normal_dataset_lda_lsa)
+parameter_result_smote_polynom_lda_lsa = find_best_parameter(smote_dataset_lda_lsa_polynom)
+parameter_result_smote_prowsyn_lda_lsa = find_best_parameter(smote_dataset_lda_lsa_prowsyn)
+
+parameter_result_normal_normalized = find_best_parameter(normal_datset_normalized)
+parameter_result_normal_lda_lsa_normalized = find_best_parameter(normal_dataset_lda_lsa_normalized)
+try:
+    parameter_result_smote_normalized_polynom = find_best_parameter(smote_dataset_normalized_polynom)
+except Exception as e:
+    # print error
+    print(f'this is error {e}')
+    pass
+
+try:
+    parameter_result_smote_normalized_prowsyn = find_best_parameter(smote_dataset_normalized_prowsyn)
+except Exception as e:
+    # print error
+    print(f'this is error {e}')
+    pass
+parameter_result_smote_lda_lsa_normalized_polynom = find_best_parameter(smote_dataset_lda_lsa_normalized_polynom)
+parameter_result_smote_lda_lsa_normalized_prowsyn = find_best_parameter(smote_dataset_lda_lsa_normalized_prowsyn)
+
+

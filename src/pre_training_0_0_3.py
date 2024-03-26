@@ -106,7 +106,11 @@ def get_var_name(var_value):
 
 def scale_sparse_matrix(matrix):
     min_max_scaler = MinMaxScaler()
-    x_scaled = min_max_scaler.fit_transform(matrix.toarray())
+    if type(matrix) is np.ndarray:
+        x = matrix
+    else:
+        x = matrix.toarray()
+    x_scaled = min_max_scaler.fit_transform(x)
     return csr_matrix(x_scaled)
 
 
@@ -153,11 +157,11 @@ def set_smote(x_y_fit_blind_transform, smote_type):
         count += 1
         # if statement for type x_fit is ndarray or not
         if type(x_y_fit_blind_transform_dict['x_fit']) is np.ndarray:
-            X = x_y_fit_blind_transform_dict['x_fit']
+            x = x_y_fit_blind_transform_dict['x_fit']
         else:
-            X = x_y_fit_blind_transform_dict['x_fit'].toarray()
+            x = x_y_fit_blind_transform_dict['x_fit'].toarray()
         y = x_y_fit_blind_transform_dict['y_fit']
-        x_smote, y_smote = smote_type.sample(X, y)
+        x_smote, y_smote = smote_type.sample(x, y)
         if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
                 x_y_fit_blind_transform_dict['y_fit'].shape[0]:
             print("set Balanced: x value old = " + str(
@@ -170,18 +174,28 @@ def set_smote(x_y_fit_blind_transform, smote_type):
                   ", y value new = " + str(y_smote.shape))
             pass
         else:
-            raise Exception("It not set smote")
+            x_y_fit_blind_transform_dict['smote'] = "smote is not set!!"
+        pass
         # Check ratio of Y_smote
         class_distribution_train_smote = pd.Series(y_smote).value_counts()
         print(f"count_y_smote {class_distribution_train_smote}")
         ratio_class_1_train_smote = class_distribution_train_smote[1] / len(y_smote)
         ratio_class_0_train_smote = class_distribution_train_smote[0] / len(y_smote)
+        print(f"Shape of x_smote: {x_smote.shape}")
+        print(f"Size of x_smote: {x_smote.size}")
+        print(f"Shape of y_smote: {y_smote.shape}")
+        print(f"Size of y_smote: {y_smote.size}")
         print(f"\nRatio of class '1' in the training smote set: {ratio_class_1_train_smote:.2%}")
         print(f"\nRatio of class '0' in the training smote set: {ratio_class_0_train_smote:.2%}")
-        x_y_fit_blind_transform_dict['x_fit'] = x_smote
+        y_smote = pd.Series(y_smote)
+        x_sparse = csr_matrix(x_smote)
+        # if compare_datasets(x_smote, x_sparse):
+        #     a = "Datasets are equivalent!"
+        # else:
+        #     a = "Datasets have mismatches!"
+        x_y_fit_blind_transform_dict['x_fit'] = x_sparse
         x_y_fit_blind_transform_dict['y_fit'] = y_smote
-        x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
-        x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
+        del x_smote, y_smote
         print(f"Total process: {count}")
     joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_{smote_type_name}.pkl')
     end_time = time.time()
@@ -190,6 +204,21 @@ def set_smote(x_y_fit_blind_transform, smote_type):
     result_time = time.strftime("%H:%M:%S", result_time_gmt)
     print(f"Total time: {result_time}")
     return x_y_fit_blind_transform
+
+
+def compare_datasets(x_orig, x_csr):
+    num_elements = x_orig.shape[0] * x_orig.shape[1]
+    mismatches = 0
+    for i in range(x_orig.shape[0]):
+        print(f"still checking at {i}")
+        for j in range(x_orig.shape[1]):
+            csr = x_csr[i, j]
+            smote = x_orig[i, j]
+            if x_orig[i, j] != x_csr[i, j]:
+                mismatches += 1
+                if mismatches > num_elements * 0.0001:  # Early stopping for efficiency
+                    return False
+    return mismatches == 0
 
 
 class MachineLearningScript:
@@ -328,26 +357,51 @@ class MachineLearningScript:
         for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
             # condition for TF using LDA
             term_condition = x_y_fit_blind_transform_dict['combination'].split('_')[0]
-            print(f"this is loop is on {term_condition}")
             if term_condition == 'CountVectorizer':
+                print(f"this is loop is in if statement {term_condition}")
                 # count loop
                 count += 1
                 lda = LatentDirichletAllocation(n_components=500, random_state=42)
+                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].size) + ' this is whole_x_fit')
+                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].shape) + ' this is shape of whole_x_fit')
+                print(str(x_y_fit_blind_transform_dict['x_fit'].size) + ' this is x_fit')
+                print(str(x_y_fit_blind_transform_dict['x_fit'].shape) + ' this is shape of x_fit')
+                print('||||||||||||||||||||||||')
                 lda.fit(x_y_fit_blind_transform_dict['whole_x_fit'])
                 x_lda_fit = lda.transform(x_y_fit_blind_transform_dict['x_fit'])
+                print(str(x_lda_fit.size) + ' this is x_lda_fit')
+                print(str(x_lda_fit.shape) + ' this is shape of x_lda_fit')
                 x_lda_blind_test = lda.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+                # print(str(x_lda_blind_test.size) + ' this is x_lda_blind_test')
+                # print(str(x_lda_blind_test.shape) + ' this is shape of x_lda_blind_test')
+                print('----------------------')
                 x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
                 x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
+                x_y_fit_blind_transform_dict['term'] = 'TF_LDA'
+                del lda, x_lda_fit, x_lda_blind_test
             # condition for TFidf using LSA
             elif term_condition == 'TfidfVectorizer':
+                print(f"this is loop is in if statement {term_condition}")
                 # count loop
                 count += 1
                 lsa = TruncatedSVD(n_components=500, random_state=42)
                 lsa.fit(x_y_fit_blind_transform_dict['whole_x_fit'])
+                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].size) + ' this is whole_x_fit')
+                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].shape) + ' this is shape of whole_x_fit')
+                print(str(x_y_fit_blind_transform_dict['x_fit'].size) + ' this is x_fit')
+                print(str(x_y_fit_blind_transform_dict['x_fit'].shape) + ' this is shape of x_fit')
+                print('||||||||||||||||||||||||')
                 x_lsa_fit = lsa.transform(x_y_fit_blind_transform_dict['x_fit'])
+                print(str(x_lsa_fit.size) + ' this is x_lsa_fit')
+                print(str(x_lsa_fit.shape) + ' this is shape of x_lsa_fit')
                 x_lsa_blind_test = lsa.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+                # print(str(x_lsa_blind_test.size) + ' this is x_lsa_blind_test')
+                # print(str(x_lsa_blind_test.shape) + ' this is shape of x_lsa_blind_test')
+                print('----------------------')
                 x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
                 x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
+                x_y_fit_blind_transform_dict['term'] = 'TFidf_LSA'
+                del lsa, x_lsa_fit, x_lsa_blind_test
         print(f"Total process: {count}")
         joblib.dump(x_y_fit_blind_transform, f'../resources/result_0_0_3/{variable_name}_with_LDA_LSA.pkl')
         end_time = time.time()
@@ -368,30 +422,40 @@ n_grams_ranges = [(1, 1), (1, 2)]
 
 # # To run datafit
 run = MachineLearningScript(x, y_source, term_representations, pre_process_steps, n_grams_ranges)
-indexer = run.indexing_x()
-x = run.data_fit_transform(indexer)
-run.call_notify("Finish 1st step pre-process")
-time.sleep(10)
+# indexer = run.indexing_x()
+# x = run.data_fit_transform(indexer)
+# run.call_notify("Finish 1st step pre-process")
+# time.sleep(10)
 
 # # To run lda lsa
 x_y_fit_normal = joblib.load('../resources/result_0_0_3/x_y_fit_normal_0_0_3.pkl')
-x_y_normal_with_lda_lsa = run.set_lda_lsa(x_y_fit_normal)
-# x_y_normal_with_lda_lsa = joblib.load('../resources/result_0_0_3/x_y_fit_normal_with_LDA_LSA.pkl')
+# x_y_normal_with_lda_lsa = run.set_lda_lsa(x_y_fit_normal)
+x_y_normal_with_lda_lsa = joblib.load('../resources/result_0_0_3/x_y_fit_normal_with_LDA_LSA.pkl')
+# x_y_normal_with_lda_lsa = joblib.load('../resources/result_0_0_3/x_y_fit_normal_with_LDA_LSA_old_same_size_xfit.pkl')
 run.call_notify("Finish to set lda lsa")
 time.sleep(10)
 
-# To run smote
-# smote_prowsyn = sv.ProWSyn(random_state=42)
-# smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
-# x_y_fit_SMOTE_ProWSyn = set_smote(x_y_normal_with_lda_lsa, smote_prowsyn)
-# x_y_fit_SMOTE_polynom_fit = set_smote(x_y_normal_with_lda_lsa, smote_polynom_fit)
+# # To run smote
+smote_prowsyn = sv.ProWSyn(random_state=42)
+smote_polynom_fit = sv.polynom_fit_SMOTE_poly(random_state=42)
+# x_y_fit_normal_SMOTE_ProWSyn = set_smote(x_y_fit_normal, smote_prowsyn)
+x_y_fit_normal_SMOTE_ProWSyn = joblib.load('../resources/result_0_0_3/x_y_fit_normal_smote_prowsyn.pkl')
+# x_y_fit_normal_SMOTE_polynom_fit = set_smote(x_y_fit_normal, smote_polynom_fit)
+x_y_fit_normal_SMOTE_polynom_fit = joblib.load('../resources/result_0_0_3/x_y_fit_normal_smote_polynom_fit.pkl')
+# x_y_fit_with_lda_lsa_SMOTE_ProWSyn = set_smote(x_y_normal_with_lda_lsa, smote_prowsyn)
+x_y_fit_with_lda_lsa_SMOTE_ProWSyn = joblib.load('../resources/result_0_0_3/x_y_normal_with_lda_lsa_smote_prowsyn.pkl')
+# x_y_fit_with_lda_lsa_SMOTE_polynom_fit = set_smote(x_y_normal_with_lda_lsa, smote_polynom_fit)
+x_y_fit_with_lda_lsa_SMOTE_polynom_fit = joblib.load('../resources/result_0_0_3/x_y_normal_with_lda_lsa_smote_polynom_fit.pkl')
 # run.call_notify("Finish to set smote")
-# time.sleep(10)
+time.sleep(10)
 #
 #
 # # To run normalize
-# x_y_fit_normal_normalized = normalize_x(x_y_fit_normal, 'min_max')
-# x_y_normal_with_lda_lsa_normalized = normalize_x(x_y_normal_with_lda_lsa, 'min_max')
-# x_y_fit_SMOTE_ProWSyn_normalized = normalize_x(x_y_fit_SMOTE_ProWSyn, 'min_max')
-# x_y_fit_SMOTE_polynom_fit_normalized = normalize_x(x_y_fit_SMOTE_polynom_fit, 'min_max')
-# run.call_notify("Finish to normalize")
+x_y_fit_normal_normalized = normalize_x(x_y_fit_normal, 'min_max')
+x_y_normal_with_lda_lsa_normalized = normalize_x(x_y_normal_with_lda_lsa, 'min_max')
+x_y_fit_SMOTE_ProWSyn_normalized = normalize_x(x_y_fit_normal_SMOTE_ProWSyn, 'min_max')
+x_y_fit_SMOTE_polynom_fit_normalized = normalize_x(x_y_fit_normal_SMOTE_polynom_fit, 'min_max')
+
+x_y_fit_with_lda_lsa_SMOTE_ProWSyn_normalized = normalize_x(x_y_fit_with_lda_lsa_SMOTE_ProWSyn, 'min_max')
+x_y_fit_with_lda_lsa_SMOTE_polynom_fit_normalized = normalize_x(x_y_fit_with_lda_lsa_SMOTE_polynom_fit, 'min_max')
+run.call_notify("Finish to normalize")

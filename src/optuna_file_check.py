@@ -75,7 +75,9 @@ def loop_dict_optuna_list_to_df(dict_list, list_remover):
         }
         new_dict.update(a_dict)
         for e in list_remover:
-            new_dict.pop(e)
+            # check if key is in dict
+            if e in new_dict:
+                new_dict.pop(e)
         best_params = new_dict.pop('best_params')
         try:
             best_params_series = pd.DataFrame(best_params, index=[0])
@@ -90,14 +92,21 @@ def loop_dict_optuna_list_to_df(dict_list, list_remover):
     return df
 
 
-cv_score_normal = joblib.load('../resources/optuna_result/cv_score_normal_result.pkl')
-cv_score_smote = joblib.load('../resources/optuna_result/cv_score_smote_result.pkl')
+cv_score_normal = joblib.load('../resources/optuna_result/cv_score_normal_dataset.pkl')
+cv_score_smote_polynom_fit = joblib.load('../resources/optuna_result/cv_score_smote_dataset_polynom_fit.pkl')
+cv_score_smote_prowsyn_fit = joblib.load('../resources/optuna_result/cv_score_smote_dataset_prowsyn_fit.pkl')
+cv_score_normal_lda_lsa = joblib.load('../resources/optuna_result/cv_score_normal_dataset_lda_lsa.pkl')
+cv_score_smote_polnom_lda_lsa = joblib.load('../resources/optuna_result/cv_score_smote_dataset_lda_lsa_polynom.pkl')
 
-normal_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')
-smote_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+# normal_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')
+# smote_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
 
-cv_score_normal_df = loop_dict_optuna_list_to_df(cv_score_normal, ['x_fit', 'x_blind_test'])
-cv_score_smote_df = loop_dict_optuna_list_to_df(cv_score_smote, ['x_fit', 'x_blind_test'])
+columns_i_dont_want = ['whole_x_fit', 'x_fit', 'x_blind_test', 'y_fit', 'y_blind_test', ]
+cv_score_normal_df = loop_dict_optuna_list_to_df(cv_score_normal, columns_i_dont_want)
+cv_score_smote_polynom_fit_df = loop_dict_optuna_list_to_df(cv_score_smote_polynom_fit, columns_i_dont_want)
+cv_score_smote_prowsyn_fit_df = loop_dict_optuna_list_to_df(cv_score_smote_prowsyn_fit, columns_i_dont_want)
+cv_score_normal_lda_lsa_df = loop_dict_optuna_list_to_df(cv_score_normal_lda_lsa, columns_i_dont_want)
+cv_score_smote_polynom_lda_lsa_df = loop_dict_optuna_list_to_df(cv_score_smote_polnom_lda_lsa, columns_i_dont_want)
 
 
 # Get all best parameters and results of combination
@@ -109,8 +118,14 @@ def get_best_params_and_result(df: pd.DataFrame):
 
 best_param_of_normal = get_best_params_and_result(cv_score_normal_df)
 joblib.dump(best_param_of_normal, '../resources/optuna_result/best_param_of_normal.pkl')
-best_param_of_smote = get_best_params_and_result(cv_score_smote_df)
-joblib.dump(best_param_of_smote, '../resources/optuna_result/best_param_of_smote.pkl')
+best_param_of_smote_polynom_fit = get_best_params_and_result(cv_score_smote_polynom_fit_df)
+joblib.dump(best_param_of_smote_polynom_fit, '../resources/optuna_result/best_param_of_smote_polynom_fit.pkl')
+best_param_of_smote_prowsyn_fit = get_best_params_and_result(cv_score_smote_prowsyn_fit_df)
+joblib.dump(best_param_of_smote_prowsyn_fit, '../resources/optuna_result/best_param_of_smote_prowsyn_fit.pkl')
+best_param_of_normal_lda_lsa = get_best_params_and_result(cv_score_normal_lda_lsa_df)
+joblib.dump(best_param_of_normal_lda_lsa, '../resources/optuna_result/best_param_of_normal_lda_lsa.pkl')
+best_param_of_smote_polynom_lda_lsa = get_best_params_and_result(cv_score_smote_polynom_lda_lsa_df)
+joblib.dump(best_param_of_smote_polynom_lda_lsa, '../resources/optuna_result/best_param_of_smote_polynom_lda_lsa.pkl')
 
 
 # function to train cv model with list of the best parameters as df
