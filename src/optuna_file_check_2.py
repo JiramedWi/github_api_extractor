@@ -99,6 +99,8 @@ start_time_announce = start_time_prepare_df.strftime("%c")
 start_noti = f"start to preparing df best param at: {start_time_announce}"
 r = requests.post(line_url, headers=headers, data={'message': start_noti})
 print(r.text, start_time_announce)
+
+# read all cv score from optuna result
 cv_score_normal = joblib.load('../resources/optuna_result/cv_score_normal_dataset.pkl')
 cv_score_smote_polynom_fit = joblib.load('../resources/optuna_result/cv_score_smote_dataset_polynom_fit.pkl')
 cv_score_smote_prowsyn_fit = joblib.load('../resources/optuna_result/cv_score_smote_dataset_prowsyn_fit.pkl')
@@ -121,6 +123,7 @@ cv_score_smote_dataset_lda_lsa_normalized_polynom = joblib.load(
 cv_score_smote_dataset_lda_lsa_normalized_prowsyn = joblib.load(
     '../resources/optuna_result/cv_score_smote_dataset_lda_lsa_normalized_prowsyn.pkl')
 
+# change optuna result into df
 columns_i_dont_want = ['whole_x_fit', 'x_fit', 'x_blind_test', 'y_fit', 'y_blind_test', ]
 cv_score_normal_df = loop_dict_optuna_list_to_df(cv_score_normal, columns_i_dont_want)
 cv_score_smote_polynom_fit_df = loop_dict_optuna_list_to_df(cv_score_smote_polynom_fit, columns_i_dont_want)
@@ -276,40 +279,40 @@ def train_cv_model(df_parameters: pd.DataFrame, datasets):
     print(r.text, end_time_noti)
 
 
-# line noti train cv model
-start_time_cv = datetime.now(tz)
-start_time_announce = start_time_cv.strftime("%c")
-start_noti = f"start to train cv at: {start_time_announce}"
-r = requests.post(line_url, headers=headers, data={'message': start_noti})
-print(r.text, start_time_announce)
-train_cv_model(best_param_of_normal, cv_score_normal)
-train_cv_model(best_param_of_smote_polynom_fit, cv_score_smote_polynom_fit)
-train_cv_model(best_param_of_smote_prowsyn_fit, cv_score_smote_prowsyn_fit)
-
-train_cv_model(best_param_of_lda_lsa, cv_score_normal_dataset_lda_lsa)
-train_cv_model(best_param_of_smote_polynom_lda_lsa, cv_score_smote_dataset_lda_lsa_polynom)
-train_cv_model(best_param_of_smote_prowsyn_lda_lsa, cv_score_smote_dataset_lda_lsa_prowsyn)
-
-train_cv_model(best_param_of_normal_normalized, cv_score_normal_datset_normalized)
-train_cv_model(best_param_of_lda_lsa_normalized, cv_score_normal_dataset_lda_lsa_normalized)
-train_cv_model(best_param_of_smote_normalized_polynom, cv_score_smote_dataset_normalized_polynom)
-train_cv_model(best_param_of_smote_normalized_prowsyn, cv_score_smote_dataset_normalized_prowsyn)
-train_cv_model(best_param_of_smote_lda_lsa_normalized_polynom, cv_score_smote_dataset_lda_lsa_normalized_polynom)
-train_cv_model(best_param_of_smote_lda_lsa_normalized_prowsyn, cv_score_smote_dataset_lda_lsa_normalized_prowsyn)
-
-# end line noti train cv
-end_time = datetime.now(tz)
-result_time = end_time - start_time_cv
-result_time_in_sec = result_time.total_seconds()
-# Make it short to 2 decimal
-in_minute = result_time_in_sec / 60
-in_minute = "{:.2f}".format(in_minute)
-# Make it short to 5 decimal
-in_hour = result_time_in_sec / 3600
-in_hour = "{:.5f}".format(round(in_hour, 2))
-end_time_noti = f"Total time of CV train: {result_time_in_sec} seconds, {in_minute} minutes, {in_hour} hours"
-r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
-print(r.text, end_time_noti)
+# # line noti train cv model
+# start_time_cv = datetime.now(tz)
+# start_time_announce = start_time_cv.strftime("%c")
+# start_noti = f"start to train cv at: {start_time_announce}"
+# r = requests.post(line_url, headers=headers, data={'message': start_noti})
+# print(r.text, start_time_announce)
+# train_cv_model(best_param_of_normal, cv_score_normal)
+# train_cv_model(best_param_of_smote_polynom_fit, cv_score_smote_polynom_fit)
+# train_cv_model(best_param_of_smote_prowsyn_fit, cv_score_smote_prowsyn_fit)
+#
+# train_cv_model(best_param_of_lda_lsa, cv_score_normal_dataset_lda_lsa)
+# train_cv_model(best_param_of_smote_polynom_lda_lsa, cv_score_smote_dataset_lda_lsa_polynom)
+# train_cv_model(best_param_of_smote_prowsyn_lda_lsa, cv_score_smote_dataset_lda_lsa_prowsyn)
+#
+# train_cv_model(best_param_of_normal_normalized, cv_score_normal_datset_normalized)
+# train_cv_model(best_param_of_lda_lsa_normalized, cv_score_normal_dataset_lda_lsa_normalized)
+# train_cv_model(best_param_of_smote_normalized_polynom, cv_score_smote_dataset_normalized_polynom)
+# train_cv_model(best_param_of_smote_normalized_prowsyn, cv_score_smote_dataset_normalized_prowsyn)
+# train_cv_model(best_param_of_smote_lda_lsa_normalized_polynom, cv_score_smote_dataset_lda_lsa_normalized_polynom)
+# train_cv_model(best_param_of_smote_lda_lsa_normalized_prowsyn, cv_score_smote_dataset_lda_lsa_normalized_prowsyn)
+#
+# # end line noti train cv
+# end_time = datetime.now(tz)
+# result_time = end_time - start_time_cv
+# result_time_in_sec = result_time.total_seconds()
+# # Make it short to 2 decimal
+# in_minute = result_time_in_sec / 60
+# in_minute = "{:.2f}".format(in_minute)
+# # Make it short to 5 decimal
+# in_hour = result_time_in_sec / 3600
+# in_hour = "{:.5f}".format(round(in_hour, 2))
+# end_time_noti = f"Total time of CV train: {result_time_in_sec} seconds, {in_minute} minutes, {in_hour} hours"
+# r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
+# print(r.text, end_time_noti)
 
 
 # function to train predict model with list of the best parameters as df
