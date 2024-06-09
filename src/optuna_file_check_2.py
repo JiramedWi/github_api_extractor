@@ -381,36 +381,36 @@ def train_predict_model(df_parameters: pd.DataFrame, datasets):
     print(r.text, end_time_noti)
 
 
-# line noti train predict model
-start_time_predict = datetime.now(tz)
-start_time_announce = start_time_predict.strftime("%c")
-start_noti = f"start to train predict model at: {start_time_announce}"
-r = requests.post(line_url, headers=headers, data={'message': start_noti})
-print(r.text, start_time_announce)
-train_predict_model(best_param_of_normal, cv_score_normal)
-train_predict_model(best_param_of_smote_polynom_fit, cv_score_smote_polynom_fit)
-train_predict_model(best_param_of_smote_prowsyn_fit, cv_score_smote_prowsyn_fit)
-
-train_predict_model(best_param_of_lda_lsa, cv_score_normal_dataset_lda_lsa)
-train_predict_model(best_param_of_smote_polynom_lda_lsa, cv_score_smote_dataset_lda_lsa_polynom)
-train_predict_model(best_param_of_smote_prowsyn_lda_lsa, cv_score_smote_dataset_lda_lsa_prowsyn)
-
-train_predict_model(best_param_of_normal_normalized, cv_score_normal_datset_normalized)
-train_predict_model(best_param_of_lda_lsa_normalized, cv_score_normal_dataset_lda_lsa_normalized)
-train_predict_model(best_param_of_smote_normalized_polynom, cv_score_smote_dataset_normalized_polynom)
-train_predict_model(best_param_of_smote_normalized_prowsyn, cv_score_smote_dataset_normalized_prowsyn)
-train_predict_model(best_param_of_smote_lda_lsa_normalized_polynom, cv_score_smote_dataset_lda_lsa_normalized_polynom)
-train_predict_model(best_param_of_smote_lda_lsa_normalized_prowsyn, cv_score_smote_dataset_lda_lsa_normalized_prowsyn)
-# end line noti train predict model
-end_time = datetime.now(tz)
-result_time = end_time - start_time_predict
-result_time_in_sec = result_time.total_seconds()
-# Make it short to 2 decimal
-in_minute = result_time_in_sec / 60
-in_minute = "{:.2f}".format(in_minute)
-# Make it short to 5 decimal
-in_hour = result_time_in_sec / 3600
-in_hour = "{:.5f}".format(round(in_hour, 2))
-end_time_noti = f"Total time of ML train: {result_time_in_sec} seconds, {in_minute} minutes, {in_hour} hours"
-r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
-print(r.text, end_time_noti)
+# # line noti train predict model
+# start_time_predict = datetime.now(tz)
+# start_time_announce = start_time_predict.strftime("%c")
+# start_noti = f"start to train predict model at: {start_time_announce}"
+# r = requests.post(line_url, headers=headers, data={'message': start_noti})
+# print(r.text, start_time_announce)
+# train_predict_model(best_param_of_normal, cv_score_normal)
+# train_predict_model(best_param_of_smote_polynom_fit, cv_score_smote_polynom_fit)
+# train_predict_model(best_param_of_smote_prowsyn_fit, cv_score_smote_prowsyn_fit)
+#
+# train_predict_model(best_param_of_lda_lsa, cv_score_normal_dataset_lda_lsa)
+# train_predict_model(best_param_of_smote_polynom_lda_lsa, cv_score_smote_dataset_lda_lsa_polynom)
+# train_predict_model(best_param_of_smote_prowsyn_lda_lsa, cv_score_smote_dataset_lda_lsa_prowsyn)
+#
+# train_predict_model(best_param_of_normal_normalized, cv_score_normal_datset_normalized)
+# train_predict_model(best_param_of_lda_lsa_normalized, cv_score_normal_dataset_lda_lsa_normalized)
+# train_predict_model(best_param_of_smote_normalized_polynom, cv_score_smote_dataset_normalized_polynom)
+# train_predict_model(best_param_of_smote_normalized_prowsyn, cv_score_smote_dataset_normalized_prowsyn)
+# train_predict_model(best_param_of_smote_lda_lsa_normalized_polynom, cv_score_smote_dataset_lda_lsa_normalized_polynom)
+# train_predict_model(best_param_of_smote_lda_lsa_normalized_prowsyn, cv_score_smote_dataset_lda_lsa_normalized_prowsyn)
+# # end line noti train predict model
+# end_time = datetime.now(tz)
+# result_time = end_time - start_time_predict
+# result_time_in_sec = result_time.total_seconds()
+# # Make it short to 2 decimal
+# in_minute = result_time_in_sec / 60
+# in_minute = "{:.2f}".format(in_minute)
+# # Make it short to 5 decimal
+# in_hour = result_time_in_sec / 3600
+# in_hour = "{:.5f}".format(round(in_hour, 2))
+# end_time_noti = f"Total time of ML train: {result_time_in_sec} seconds, {in_minute} minutes, {in_hour} hours"
+# r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
+# print(r.text, end_time_noti)

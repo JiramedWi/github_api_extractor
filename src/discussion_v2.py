@@ -2,6 +2,8 @@ import os.path
 
 import joblib
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # List of file names
 file_names = [
@@ -33,7 +35,7 @@ file_names = [
 
 # Dictionary to store DataFrames
 dataframes = {}
-file_path = '/home/pee/repo/github_api_extractor/resources/result_optuna_parameter_tuning_round_2/result_as_df/'
+file_path = '../resources/result_optuna_parameter_tuning_round_2/result_as_df/'
 # Loop through the file names and read each into a DataFrame
 for file_name in file_names:
     # Create a key based on the file name without the extension
@@ -46,6 +48,8 @@ for file_name in file_names:
 best_scores_cv = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']
 # best_scores_cv = ['precision_macro']
 best_scores_predict = ['precision_test_score', 'recall_test_score', 'f1_test_score', 'roc_auc_test_score']
+
+
 # best_scores_predict = ['precision_test_score', 'recall_test_score', 'f1_test_score', 'roc_auc_test_score', 'mcc']
 
 
@@ -94,7 +98,8 @@ def compare_cv_predict_print(result_best_scores_dataframes, cv_key, predict_key)
     result_predict = result_best_scores_dataframes[predict_key]
     # print result
     print(f" 1st rank y average score of {cv_key} = \n{result_cv['top_ranked_y_name']}")  # 1st rank of cv
-    print(f" 1st rank y average score of {predict_key} = \n{result_predict['top_ranked_y_name']}")  # 1st rank of predict
+    print(
+        f" 1st rank y average score of {predict_key} = \n{result_predict['top_ranked_y_name']}")  # 1st rank of predict
     print(
         f" all rank score of {cv_key} = \n{result_cv['all_scores'].sort_values(by=['y_name'], ascending=False).to_markdown()}")  # all scores of cv
     print(
@@ -155,3 +160,105 @@ for cv_key, predict_key in zip(normal_normalized_cv, normal_normalized_predict):
     compare_cv_predict_print(result_best_scores, cv_key, predict_key)
 print('---------------------------------------------------------')
 
+# create all dataset of df to see CV score and predict result
+all_df_cv_score = pd.concat([dataframes[key] for key in dataframes if "cv_score" in key])
+all_df_predict_result = pd.concat([dataframes[key] for key in dataframes if "predict_score" in key])
+
+# Over-all agreement of the best combination in CV and predict
+over_all_agreement_cv_result = all_df_cv_score[["count_vectorizer", "pre_process", "n_gram", "term",
+                                                "y_name", "smote",
+                                                "precision_macro", "recall_macro", "f1_macro", "roc_auc"]]
+over_all_agreement_predict_result = all_df_predict_result[["count_vectorizer", "pre_process", "n_gram",
+                                                           "term", "y_name", "smote", "precision_test_score",
+                                                           "recall_test_score", "f1_test_score", "roc_auc_test_score"]]
+
+
+def rank_y_names_by_scores(data):
+    # Group the data by y_name and calculate the mean of the scores
+    data['overall_agreement_score_rank'] = data[['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']].rank(
+        axis=0).mean(axis=1)
+    print('')
+    # grouped = data.groupby("y_name")[["overall_agreement_score"]].mean()
+    #
+    # # Rank the y_name based on the overall agreement scores
+    # ranked = grouped.mean(axis=1).sort_values(ascending=False).reset_index()
+    # ranked.columns = ['y_name', 'average_score']
+    #
+    # # Add a rank column
+    # ranked['rank'] = ranked['average_score'].rank(ascending=False)
+
+    # Add a rank column by overall agreement score
+    # data['overall_agreement_score_rank'] = data['overall_agreement_score'].rank(ascending=False)
+
+    # Merge ranked data back with original dataframe to get full information
+    # merged_df = pd.merge(data, ranked, on='y_name', how='inner')
+
+    # Melt the DataFrame for easier plotting with seaborn
+    melted_df = pd.melt(
+        data,
+        id_vars=[
+            "y_name", "precision_macro", "recall_macro", "f1_macro", "roc_auc",
+            "overall_agreement_score_rank"],
+        value_vars=['count_vectorizer', 'pre_process', 'n_gram', 'term'],
+        var_name='technique',
+        value_name='technique_value'
+    )
+
+    # Generate a boxplot for each technique
+    # This plot shows the distribution of overall agreement scores for each technique is not impact about the rank
+    plt.figure(figsize=(16, 8))
+    sns.boxplot(x='technique_value', y='overall_agreement_score_rank', hue='technique', data=melted_df)
+    plt.title('Boxplot of Overall Agreement Scores by Technique')
+    plt.xlabel('Technique')
+    plt.ylabel('Overall Agreement rank')
+    plt.legend(title='Technique', bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.savefig('../resources/optuna_plot/overall_agreement_scores_by_technique.png')
+    plt.show()
+
+    return data
+
+
+rank_y_names_by_scores(over_all_agreement_cv_result)
+
+
+def find_top_n_ranks(data, N, y_name):
+    df = data.copy()
+    # Change into float
+    for column in ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']:
+        df[column] = pd.to_numeric(df[column], errors='coerce')
+
+    # Filter metrics we used
+    metrics = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']
+    top_n_list = []
+    # Recieve only y_name that we want
+    df_filtered = df[df['y_name'] == y_name]
+
+    # Find the top N ranks for each metric
+    for metric in metrics:
+        top_n_df = df_filtered.nlargest(N, metric).copy()
+        top_n_df['metric'] = metric
+        top_n_df['rank_at_metric'] = top_n_df[metric].rank(ascending=False)
+        top_n_list.append(top_n_df)
+
+    # Combine the top N DataFrames into a single DataFrame
+    top_n_combined_df = pd.concat(top_n_list, ignore_index=True)
+    top_n_combined_df = top_n_combined_df[
+        ['rank_at_metric', 'metric', 'count_vectorizer', 'pre_process', 'n_gram', 'term',
+         'y_name', 'smote','precision_macro', 'recall_macro', 'f1_macro', 'roc_auc',
+         'overall_agreement_score_rank']]
+
+    return top_n_combined_df
+
+
+top_5_cv_rank_code_relate = find_top_n_ranks(over_all_agreement_cv_result, 5, 'code_related')
+top_10_cv_rank_code_relate = find_top_n_ranks(over_all_agreement_cv_result, 10, 'code_related')
+top_20_cv_rank_code_relate = find_top_n_ranks(over_all_agreement_cv_result, 20, 'code_related')
+
+top_5_cv_rank_test_sementic = find_top_n_ranks(over_all_agreement_cv_result, 5, 'test_sementic')
+top_10_cv_rank_test_sementic = find_top_n_ranks(over_all_agreement_cv_result, 10, 'test_sementic')
+top_20_cv_rank_test_sementic = find_top_n_ranks(over_all_agreement_cv_result, 20, 'test_sementic')
+
+top_5_cv_rank_issue_in_test_step = find_top_n_ranks(over_all_agreement_cv_result, 5, 'issue_in_test_step')
+top_10_cv_rank_issue_in_test_step = find_top_n_ranks(over_all_agreement_cv_result, 10, 'issue_in_test_step')
+top_20_cv_rank_issue_in_test_step = find_top_n_ranks(over_all_agreement_cv_result, 20, 'issue_in_test_step')
