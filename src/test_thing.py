@@ -21,32 +21,32 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 cv_score_SMOTE_result_for_train = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/cv_score_smote_result_for_train.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/cv_score_smote_result_for_train.pkl')))
 cv_score_SMOTE_result_for_train_normalize_min_max = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/cv_score_SMOTE_result_for_train_normalize_min_max.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/cv_score_SMOTE_result_for_train_normalize_min_max.pkl')))
 cv_score_SMOTE_result_for_train_normalize_log = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/cv_score_SMOTE_result_for_train_normalize_log.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/cv_score_SMOTE_result_for_train_normalize_log.pkl')))
 
 predict_SMOTE_result_for_train = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/predict_smote_result_for_train.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/predict_smote_result_for_train.pkl')))
 predict_SMOTE_result_for_train_normalize_min_max = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/predict_SMOTE_result_for_train_normalize_min_max.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/predict_SMOTE_result_for_train_normalize_min_max.pkl')))
 predict_SMOTE_result_for_train_normalize_log = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/predict_SMOTE_result_for_train_normalize_log.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/predict_SMOTE_result_for_train_normalize_log.pkl')))
 
 cv_score_normal_result_for_train = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/cv_score_normal_result_for_train.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/cv_score_normal_result_for_train.pkl')))
 cv_score_normal_result_for_train_normalize_log = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/cv_score_normal_result_for_train_normalize_log.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/cv_score_normal_result_for_train_normalize_log.pkl')))
 cv_score_normal_result_for_train_normalize_min_max = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/cv_score_normal_result_for_train_normalize_min_max.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/cv_score_normal_result_for_train_normalize_min_max.pkl')))
 
 predict_normal_result_for_train = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/predict_normal_result_for_train.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/predict_normal_result_for_train.pkl')))
 predict_normal_result_for_train_normalize_log = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/predict_normal_result_for_train_normalize_log.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/predict_normal_result_for_train_normalize_log.pkl')))
 predict_normal_result_for_train_normalize_min_max = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/predict_normal_result_for_train_normalize_min_max.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/predict_normal_result_for_train_normalize_min_max.pkl')))
 
 
 def loop_dict_normal_list_to_df(dict_list):
@@ -199,17 +199,17 @@ def parse_combination(combination_text):
 
 
 # Dataframe dataset
-normal_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')
+normal_result_for_train = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_0_0_2.pkl')
 normal_result_for_train_normalize_min_max = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
 normal_result_for_train_normalize_log = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
 
-SMOTE_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+SMOTE_result_for_train = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
 SMOTE_result_for_train_normalize_min_max = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
 SMOTE_result_for_train_normalize_log = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
 
 normal_result_for_train = loop_dict_normal_list_to_df(normal_result_for_train)
 normal_result_for_train_normalize_min_max = loop_dict_normal_list_to_df(normal_result_for_train_normalize_min_max)

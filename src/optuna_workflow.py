@@ -85,46 +85,13 @@ def objective(trial, x, y):
     result = model_selection.cross_validate(gbm, x, y, cv=5, n_jobs=3, scoring='roc_auc')
     print(result)
     auc_scores = result['test_score']
-    return np.mean(auc_scores)
-
-
-# callback = TimeoutCallback(timeout_seconds=600)
-
-
-def save_plot_optuna(study, path, name):
-    # Plot optimization history
-    fig1 = optuna.visualization.plot_optimization_history(study)
-
-    # Plot parallel coordinates
-    fig2 = optuna.visualization.plot_parallel_coordinate(study)
-
-    # Plot slice for specified parameters
-    target_params = ['n_estimators', 'learning_rate', 'max_depth', 'min_samples_split', 'min_samples_leaf', 'subsample']
-    fig3 = optuna.visualization.plot_slice(study, params=target_params)
-
-    # Plot parameter importances
-    fig4 = optuna.visualization.plot_param_importances(study)
-
-    # Combine the subplots into a single figure
-    combined_fig = make_subplots(rows=2, cols=2)
-
-    # Add traces from each subplot to the combined figure
-    for trace in fig1.data:
-        combined_fig.add_trace(trace, row=1, col=1)
-
-    for trace in fig2.data:
-        combined_fig.add_trace(trace, row=1, col=2)
-
-    for trace in fig3.data:
-        combined_fig.add_trace(trace, row=2, col=1)
-
-    for trace in fig4.data:
-        combined_fig.add_trace(trace, row=2, col=2)
-
-    # Save the figure
-    combined_fig.update_layout(title_text=f"{name} Figure")
-    combined_fig.show()
-    combined_fig.write_image(f"{path}.png")
+    try:
+        return np.mean(auc_scores)
+    except Exception as e:
+        text = f"what happen why they get {e} error type {type(e).__name__}"
+        r = requests.post(line_url, headers=headers, data={'message': text})
+        print(r, text)
+        return -1
 
 
 def find_best_parameter(datasets: list):
@@ -142,28 +109,26 @@ def find_best_parameter(datasets: list):
         y_fit = dataset['y_fit']
         y_name = dataset['y_name']
         # Find best parameter
-        try:
-            study = optuna.create_study(direction='maximize')
-            study.optimize(
-                lambda trial: objective(trial, x_fit, y_fit),
-                n_trials=1000,
-                timeout=600,
-            )
-            trial = study.best_trial
-            result = trial.value
-            best_params = trial.params
-            dataset['best_params'] = best_params
-            dataset['result'] = result
-            noti_study = f"WE get the results at index {datasets.index(dataset)} with {result}"
-            r = requests.post(line_url, headers=headers, data={'message': noti_study})
-            print(r.text, noti_study)
-            # save_plot_path = f"../resources/optuna_plot/plot_optuna_{get_var_name(datasets)}_{term_x_name}"
-            # save_plot_optuna(study, save_plot_path, get_var_name(datasets))
-        except Exception as e:
-            logger.error(f"Error during model evaluation: {e}")
-            err_text = f"{e}" + 'error type ' + type(e).__name__ + '\n'
-            dataset['best_params'] = err_text
-            dataset['result'] = err_text
+        # try:
+        study = optuna.create_study(direction='maximize')
+        study.optimize(
+            lambda trial: objective(trial, x_fit, y_fit),
+            n_trials=1000,
+            timeout=600,
+        )
+        trial = study.best_trial
+        result = trial.value
+        best_params = trial.params
+        dataset['best_params'] = best_params
+        dataset['result'] = result
+        noti_study = f"We get the results at term {term_x_name} and y_name {y_name} with {result}"
+        r = requests.post(line_url, headers=headers, data={'message': noti_study})
+        print(r.text, noti_study)
+        # except Exception as e:
+        #     logger.error(f"Error during model evaluation: {e}")
+        #     err_text = f"{e}" + 'error type ' + type(e).__name__ + '\n'
+        #     dataset['best_params'] = err_text
+        #     dataset['result'] = err_text
     # Save the model and results path
     results_cv_path = f"../resources/optuna_result/cv_score_{get_var_name(datasets)}.pkl"
     # result_cv = pd.DataFrame(result_cv)
@@ -172,14 +137,45 @@ def find_best_parameter(datasets: list):
     result_time = end_time - start_time
     result_time_gmt = time.gmtime(result_time)
     result_time = time.strftime("%H:%M:%S", result_time_gmt)
-    end_time_noti = f"Total time end finding best parameter CV: {result_time}"
+    end_time_noti = f"Total time end finding best parameter CV: {result_time} at {get_var_name(datasets)}"
     r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
     print(r.text, end_time_noti)
     return datasets
 
 
-normal_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
-smote_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+normal_dataset = joblib.load('../resources/result_0_0_3/x_y_fit_normal_0_0_3.pkl')
+smote_dataset_polynom_fit = joblib.load('../resources/result_0_0_3/x_y_fit_normal_smote_polynom_fit.pkl')
+smote_dataset_prowsyn_fit = joblib.load('../resources/result_0_0_3/x_y_fit_normal_smote_prowsyn.pkl')
 
-parameter_result_normal = find_best_parameter(normal_result)
-parameter_result_smote = find_best_parameter(smote_result)
+normal_dataset_lda_lsa = joblib.load('../resources/result_0_0_3/x_y_fit_normal_with_LDA_LSA.pkl')
+smote_dataset_lda_lsa_polynom = joblib.load('../resources/result_0_0_3/x_y_normal_with_lda_lsa_smote_polynom_fit.pkl')
+smote_dataset_lda_lsa_prowsyn = joblib.load('../resources/result_0_0_3/x_y_normal_with_lda_lsa_smote_prowsyn.pkl')
+
+normal_datset_normalized = joblib.load('../resources/result_0_0_3/normalized_x_y_fit_normal_with_min_max.pkl')
+normal_dataset_lda_lsa_normalized = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_normal_with_lda_lsa_with_min_max.pkl')
+smote_dataset_normalized_polynom = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_fit_normal_SMOTE_polynom_fit_with_min_max.pkl')
+smote_dataset_normalized_prowsyn = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_fit_normal_SMOTE_ProWSyn_with_min_max.pkl')
+smote_dataset_lda_lsa_normalized_polynom = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_fit_normal_SMOTE_polynom_fit_with_min_max.pkl')
+smote_dataset_lda_lsa_normalized_prowsyn = joblib.load(
+    '../resources/result_0_0_3/normalized_x_y_fit_normal_SMOTE_ProWSyn_with_min_max.pkl')
+
+# parameter_result_normal = find_best_parameter(normal_dataset)
+# parameter_result_smote_polynom = find_best_parameter(smote_dataset_polynom_fit)
+# parameter_result_smote_prowsyn = find_best_parameter(smote_dataset_prowsyn_fit)
+#
+# parameter_result_normal_lda_lsa = find_best_parameter(normal_dataset_lda_lsa)
+
+# parameter_result_smote_polynom_lda_lsa = find_best_parameter(smote_dataset_lda_lsa_polynom)
+# parameter_result_smote_prowsyn_lda_lsa = find_best_parameter(smote_dataset_lda_lsa_prowsyn)
+#
+# parameter_result_normal_normalized = find_best_parameter(normal_datset_normalized)
+# parameter_result_normal_lda_lsa_normalized = find_best_parameter(normal_dataset_lda_lsa_normalized)
+# parameter_result_smote_normalized_polynom = find_best_parameter(smote_dataset_normalized_polynom)
+# parameter_result_smote_normalized_prowsyn = find_best_parameter(smote_dataset_normalized_prowsyn)
+
+parameter_result_smote_lda_lsa_normalized_polynom = find_best_parameter(smote_dataset_lda_lsa_normalized_polynom)
+parameter_result_smote_lda_lsa_normalized_prowsyn = find_best_parameter(smote_dataset_lda_lsa_normalized_prowsyn)

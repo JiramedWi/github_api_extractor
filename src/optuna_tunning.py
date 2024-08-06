@@ -9,17 +9,17 @@ from sklearn.ensemble import GradientBoostingClassifier
 
 from src.ml_trainging_one_file import train_cv
 
-normal_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')
+normal_result_for_train = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_0_0_2.pkl')
 normal_result_for_train_normalize_min_max = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
 normal_result_for_train_normalize_log = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_transform_0_0_2_log_transform_0.0.2.pkl')
 
-SMOTE_result_for_train = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+SMOTE_result_for_train = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
 SMOTE_result_for_train_normalize_min_max = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_min_max_transform_0.0.2.pkl')
 SMOTE_result_for_train_normalize_log = joblib.load(
-    '../resources/result_0.0.2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
+    '../resources/result_0_0_2/normalize_x_y_fit_blind_SMOTE_transform_0_0_2_log_transform_0.0.2.pkl')
 
 
 def objective(trial):

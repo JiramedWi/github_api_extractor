@@ -75,7 +75,9 @@ def loop_dict_optuna_list_to_df(dict_list, list_remover):
         }
         new_dict.update(a_dict)
         for e in list_remover:
-            new_dict.pop(e)
+            # check if key is in dict
+            if e in new_dict:
+                new_dict.pop(e)
         best_params = new_dict.pop('best_params')
         try:
             best_params_series = pd.DataFrame(best_params, index=[0])
@@ -90,14 +92,60 @@ def loop_dict_optuna_list_to_df(dict_list, list_remover):
     return df
 
 
-cv_score_normal = joblib.load('../resources/optuna_result/cv_score_normal_result.pkl')
-cv_score_smote = joblib.load('../resources/optuna_result/cv_score_smote_result.pkl')
 
-normal_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_transform_optuna.pkl')
-smote_result = joblib.load('../resources/result_0.0.2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+def loop_dict_optuna_list_to_df_for_old(dict_list, list_remover):
+    temp = []
+    new_dict = {}
+    for a_dict in dict_list:
+        temp_df_list = []
+        count_vectorizer, pre_process, n_gram_first, n_gram_second = smc.parse_combination(a_dict['combination'])
+        new_dict = {
+            'count_vectorizer': count_vectorizer,
+            'pre_process': pre_process,
+            'n_gram': f"{n_gram_first}_{n_gram_second}"
+        }
+        new_dict.update(a_dict)
+        for e in list_remover:
+            # check if key is in dict
+            if e in new_dict:
+                new_dict.pop(e)
+        new_df = pd.DataFrame(new_dict, index=[0])
+        new_df = pd.concat([new_df], axis=1)
+        temp.append(new_df)
 
-cv_score_normal_df = loop_dict_optuna_list_to_df(cv_score_normal, ['x_fit', 'x_blind_test'])
-cv_score_smote_df = loop_dict_optuna_list_to_df(cv_score_smote, ['x_fit', 'x_blind_test'])
+        del new_dict, new_df
+    df = pd.concat(temp)
+    return df
+
+
+cv_score_normal_old = joblib.load('../resources/result_optuna_parameter_tuning/cv_score_datasets_normal.pkl')
+cv_score_normal_optuna = joblib.load('../resources/optuna_result/cv_score_normal_dataset.pkl')
+cv_score_normal_train = joblib.load('../resources/result_optuna_parameter_tuning_round_2/cv_score_cv_score_normal.pkl')
+predict_score_normal = joblib.load('../resources/result_optuna_parameter_tuning_round_2/predict_score_cv_score_normal.pkl')
+predict_score_normal_old = joblib.load('../resources/result_optuna_parameter_tuning/predict_score_datasets_normal.pkl')
+predict_score_smote_old = joblib.load('../resources/result_optuna_parameter_tuning/predict_score_datasets_smote.pkl')
+
+# cv_score_smote_polynom_fit = joblib.load('../resources/optuna_result/cv_score_smote_dataset_polynom_fit.pkl')
+# cv_score_smote_prowsyn_fit = joblib.load('../resources/optuna_result/cv_score_smote_dataset_prowsyn_fit.pkl')
+# cv_score_normal_lda_lsa = joblib.load('../resources/optuna_result/cv_score_normal_dataset_lda_lsa.pkl')
+# cv_score_smote_polnom_lda_lsa = joblib.load('../resources/optuna_result/cv_score_smote_dataset_lda_lsa_polynom.pkl')
+
+# normal_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_optuna.pkl')
+# smote_result = joblib.load('../resources/result_0_0_2/x_y_fit_blind_SMOTE_transform_0_0_2.pkl')
+
+columns_i_dont_want = ['whole_x_fit', 'x_fit', 'x_blind_test', 'y_fit', 'y_blind_test', ]
+cv_score_normal_old = loop_dict_optuna_list_to_df_for_old(cv_score_normal_old, columns_i_dont_want)
+predict_score_normal_old_df = loop_dict_optuna_list_to_df_for_old(predict_score_normal_old, columns_i_dont_want)
+predict_score_smote_old_df = loop_dict_optuna_list_to_df_for_old(predict_score_smote_old, columns_i_dont_want)
+cv_score_normal_df = loop_dict_optuna_list_to_df(cv_score_normal_optuna, columns_i_dont_want)
+cv_score_normal_train_df = loop_dict_optuna_list_to_df(cv_score_normal_train, columns_i_dont_want)
+predict_score_normal_df = loop_dict_optuna_list_to_df(predict_score_normal, columns_i_dont_want)
+# cv_score_smote_polynom_fit_df = loop_dict_optuna_list_to_df(cv_score_smote_polynom_fit, columns_i_dont_want)
+# cv_score_smote_prowsyn_fit_df = loop_dict_optuna_list_to_df(cv_score_smote_prowsyn_fit, columns_i_dont_want)
+# cv_score_normal_lda_lsa_df = loop_dict_optuna_list_to_df(cv_score_normal_lda_lsa, columns_i_dont_want)
+
+
+# cv_score_smote_polynom_lda_lsa_df = loop_dict_optuna_list_to_df(cv_score_smote_polnom_lda_lsa, columns_i_dont_want)
 
 
 # Get all best parameters and results of combination
@@ -107,39 +155,18 @@ def get_best_params_and_result(df: pd.DataFrame):
     return best_params_and_result
 
 
-best_param_of_normal = get_best_params_and_result(cv_score_normal_df)
-best_param_of_smote = get_best_params_and_result(cv_score_smote_df)
+# best_param_of_normal = get_best_params_and_result(cv_score_normal_df)
+# joblib.dump(best_param_of_normal, '../resources/optuna_result/best_param_of_normal.pkl')
+# best_param_of_smote_polynom_fit = get_best_params_and_result(cv_score_smote_polynom_fit_df)
+# joblib.dump(best_param_of_smote_polynom_fit, '../resources/optuna_result/best_param_of_smote_polynom_fit.pkl')
+# best_param_of_smote_prowsyn_fit = get_best_params_and_result(cv_score_smote_prowsyn_fit_df)
+# joblib.dump(best_param_of_smote_prowsyn_fit, '../resources/optuna_result/best_param_of_smote_prowsyn_fit.pkl')
+# best_param_of_normal_lda_lsa = get_best_params_and_result(cv_score_normal_lda_lsa_df)
+# joblib.dump(best_param_of_normal_lda_lsa, '../resources/optuna_result/best_param_of_normal_lda_lsa.pkl')
 
 
-def compare_columns(df1, df2, col1_name, col2_name):
-    """
-  Compares two columns from different DataFrames and returns True if they are identical.
-
-  Args:
-      df1 (pd.DataFrame): First DataFrame.
-      df2 (pd.DataFrame): Second DataFrame.
-      col1_name (str): Name of the column in df1 to compare.
-      col2_name (str): Name of the column in df2 to compare.
-
-  Returns:
-      bool: True if the columns are identical, False otherwise.
-  """
-
-    # Handle potential column name mismatches and empty DataFrames
-    if not (col1_name in df1.columns and col2_name in df2.columns):
-        print(f"Column name mismatch: {col1_name} not found in df1 or {col2_name} not found in df2")
-        return False
-    if df1.empty or df2.empty:
-        print(f"One or both DataFrames are empty")
-        return False
-
-    # Ensure column lengths are equal
-    if len(df1[col1_name]) != len(df2[col2_name]):
-        print(f"Columns have different lengths: {len(df1[col1_name])} vs {len(df2[col2_name])}")
-        return False
-
-    # Efficiently compare elements (consider dtype and missing values if applicable)
-    return df1[col1_name].eq(df2[col2_name]).all()
+# best_param_of_smote_polynom_lda_lsa = get_best_params_and_result(cv_score_smote_polynom_lda_lsa_df)
+# joblib.dump(best_param_of_smote_polynom_lda_lsa, '../resources/optuna_result/best_param_of_smote_polynom_lda_lsa.pkl')
 
 
 # function to train cv model with list of the best parameters as df
@@ -261,4 +288,3 @@ def train_predict_model(df_parameters: pd.DataFrame, datasets):
     r = requests.post(line_url, headers=headers, data={'message': end_time_noti})
     print(r.text, end_time_noti)
     return datasets
-

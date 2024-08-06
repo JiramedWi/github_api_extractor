@@ -47,7 +47,7 @@ def check_same_unique_values(dataframes):
     return True
 
 
-result_list = joblib.load(Path(os.path.abspath('../resources/result_0.0.2/x_y_fit_blind_transform_0_0_2.pkl')))
+result_list = joblib.load(Path(os.path.abspath('../resources/result_0_0_2/x_y_fit_blind_transform_0_0_2.pkl')))
 df_temp = []
 for result in result_list:
     result_x = result['x_fit']

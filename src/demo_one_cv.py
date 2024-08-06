@@ -86,17 +86,19 @@ def print_x_features_from_dict_list(dict_list):
 
 
 cv_score_normal_result_for_train = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/cv_score_normal_result_for_train_gbm_model_3rd.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/cv_score_normal_result_for_train_gbm_model_3rd.pkl')))
 cv_score_normal_result_for_train = loop_dict_normal_list_to_df(cv_score_normal_result_for_train)
 # cv_score_normal_result_for_train = loop_dict_normal_list_to_df(cv_score_normal_result_for_train)
 predict_normal_result_for_train = joblib.load(
-    Path(os.path.abspath('../resources/result_0.0.2/predict_normal_result_for_train_gbm_model_3rd.pkl')))
+    Path(os.path.abspath('../resources/result_0_0_2/predict_normal_result_for_train_gbm_model_3rd.pkl')))
 
-SMOTE_result_for_train_cv_3rd = joblib.load('../resources/result_0.0.2/cv_score_SMOTE_result_for_train_gbm_model_3rd.pkl')
+SMOTE_result_for_train_cv_3rd = joblib.load(
+    '../resources/result_0_0_2/cv_score_SMOTE_result_for_train_gbm_model_3rd.pkl')
 SMOTE_result_for_train_cv_3rd = loop_dict_normal_list_to_df(SMOTE_result_for_train_cv_3rd)
 # SMOTE_result_for_cv_result_3rd = loop_dict_normal_list_to_df(SMOTE_result_for_train_cv_3rd)
 
-SMOTE_result_for_train_result_predict_3rd = joblib.load('../resources/result_0.0.2/predict_SMOTE_result_for_train_gbm_model_3rd.pkl')
+SMOTE_result_for_train_result_predict_3rd = joblib.load(
+    '../resources/result_0_0_2/predict_SMOTE_result_for_train_gbm_model_3rd.pkl')
 # df_SMOTE_result_for_train_predict_result_3rd = loop_dict_normal_list_to_df(SMOTE_result_for_train_result_predict_3rd)
 
 # print_x_features_from_dict_list(cv_score_normal_result_for_train.to_dict('records'))
