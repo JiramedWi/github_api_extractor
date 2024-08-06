@@ -44,221 +44,90 @@ for file_name in file_names:
     # Read the pickle file into a DataFrame
     dataframes[key] = joblib.load(os.path.join(file_path, file_name))
 
-# find best scores in each models and print them
-best_scores_cv = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']
-# best_scores_cv = ['precision_macro']
-best_scores_predict = ['precision_test_score', 'recall_test_score', 'f1_test_score', 'roc_auc_test_score']
-
-
-# best_scores_predict = ['precision_test_score', 'recall_test_score', 'f1_test_score', 'roc_auc_test_score', 'mcc']
-
-
-# find best score function
-def find_best_score(df, score):
-    grouped = df.groupby("y_name")[score].mean()
-    ranked = grouped.mean(axis=1).sort_values(ascending=False)
-    # print("Ranking of y_name by average scores:")
-    # print(ranked)
-
-    # Get the best combination for the top-ranked y_name
-    top_ranked_name = ranked.idxmax()
-    best_combination = df[df["y_name"] == top_ranked_name]
-    # print(f"\nBest combinations for {top_ranked_name}:")
-    # print(best_combination)
-    return top_ranked_name, best_combination, grouped, ranked
-
-
-# find best score loop in each model
-result_best_scores = {}
-for key in dataframes:
-    # seperate model key as cv and predict
-    if "cv" in key:
-        top_ranked_name, best_combination, grouped, ranked = find_best_score(dataframes[key], best_scores_cv)
-        result_best_scores[key] = {
-            'top_ranked_y_name': top_ranked_name,
-            'all_scores': grouped,
-            'best_combination': best_combination
-        }
-    elif "predict" in key:
-        print(f"at {key}")
-        top_ranked_name, best_combination, grouped, ranked = find_best_score(dataframes[key], best_scores_predict)
-        result_best_scores[key] = {
-            'top_ranked_y_name': top_ranked_name,
-            'all_scores': grouped,
-            'best_combination': best_combination
-        }
-    else:
-        print("error!! somethings wrong")
-
-
-def compare_cv_predict_print(result_best_scores_dataframes, cv_key, predict_key):
-    print(f"\nComparison of cv and predict results for each model {cv_key} and {predict_key}:")
-    # seperate count_vectorizer and tfidf_vectorizer
-    result_cv = result_best_scores_dataframes[cv_key]
-    result_predict = result_best_scores_dataframes[predict_key]
-    # print result
-    print(f" 1st rank y average score of {cv_key} = \n{result_cv['top_ranked_y_name']}")  # 1st rank of cv
-    print(
-        f" 1st rank y average score of {predict_key} = \n{result_predict['top_ranked_y_name']}")  # 1st rank of predict
-    print(
-        f" all rank score of {cv_key} = \n{result_cv['all_scores'].sort_values(by=['y_name'], ascending=False).to_markdown()}")  # all scores of cv
-    print(
-        f" all rank score of {predict_key} = \n{result_predict['all_scores'].sort_values(by=['y_name'], ascending=False).to_markdown()}")  # all scores of predict
-    # print(result_cv['best_combination'], result_predict['best_combination'])
-
-
-# Compare cv and predict results for each model lda_lsa
-cv_lda_lsa = [key for key in result_best_scores.keys() if "lda_lsa" in key and "cv" in key]
-predict_lda_lsa = [key for key in result_best_scores.keys() if "lda_lsa" in key and "predict" in key]
-
-for cv_key, predict_key in zip(cv_lda_lsa, predict_lda_lsa):
-    # seperate count_vectorizer and tfidf_vectorizer
-    compare_cv_predict_print(result_best_scores, cv_key, predict_key)
-print('---------------------------------------------------------')
-# Compare cv and predict results for each model normalized
-cv_normalized = [key for key in result_best_scores.keys() if "normalized" in key and "cv" in key]
-predict_normalized = [key for key in result_best_scores.keys() if "normalized" in key and "predict" in key]
-
-for cv_key, predict_key in zip(cv_normalized, predict_normalized):
-    # seperate count_vectorizer and tfidf_vectorizer
-    compare_cv_predict_print(result_best_scores, cv_key, predict_key)
-print('---------------------------------------------------------')
-
-# Compare cv and predict results for each model smote
-cv_smote_poly = [key for key in result_best_scores.keys() if "polynom" in key and "cv" in key]
-cv_smote_prowsyn = [key for key in result_best_scores.keys() if "prowsyn" in key and "cv" in key]
-predict_smote_poly = [key for key in result_best_scores.keys() if "polynom" in key and "predict" in key]
-predict_smote_prowsyn = [key for key in result_best_scores.keys() if "prowsyn" in key and "predict" in key]
-
-# compare in polynom
-for cv_key, predict_key in zip(cv_smote_poly, predict_smote_poly):
-    # seperate count_vectorizer and tfidf_vectorizer
-    compare_cv_predict_print(result_best_scores, cv_key, predict_key)
-print('---------------------------------------------------------')
-
-# compare in prowsyn
-for cv_key, predict_key in zip(cv_smote_prowsyn, predict_smote_prowsyn):
-    # seperate count_vectorizer and tfidf_vectorizer
-    compare_cv_predict_print(result_best_scores, cv_key, predict_key)
-print('---------------------------------------------------------')
-
-# normal
-normal_cv = [key for key in result_best_scores.keys() if "normal_df" in key and "cv" in key]
-normal_predict = [key for key in result_best_scores.keys() if "normal_df" in key and "predict" in key]
-
-for cv_key, predict_key in zip(normal_cv, normal_predict):
-    # seperate count_vectorizer and tfidf_vectorizer
-    compare_cv_predict_print(result_best_scores, cv_key, predict_key)
-print('---------------------------------------------------------')
-
-# normal normalized
-normal_normalized_cv = [key for key in result_best_scores.keys() if "normalized_df" in key and "cv" in key]
-normal_normalized_predict = [key for key in result_best_scores.keys() if "normalized_df" in key and "predict" in key]
-
-for cv_key, predict_key in zip(normal_normalized_cv, normal_normalized_predict):
-    # seperate count_vectorizer and tfidf_vectorizer
-    compare_cv_predict_print(result_best_scores, cv_key, predict_key)
-print('---------------------------------------------------------')
-
 # create all dataset of df to see CV score and predict result
 all_df_cv_score = pd.concat([dataframes[key] for key in dataframes if "cv_score" in key])
 all_df_predict_result = pd.concat([dataframes[key] for key in dataframes if "predict_score" in key])
 
 # Over-all agreement of the best combination in CV and predict
 over_all_agreement_cv_result = all_df_cv_score[["count_vectorizer", "pre_process", "n_gram", "term",
-                                                "y_name", "smote",
+                                                "y_name", "smote", "normalization",
                                                 "precision_macro", "recall_macro", "f1_macro", "roc_auc"]]
+over_all_agreement_cv_result['normalization'].fillna('no', inplace=True)
+over_all_agreement_cv_result['term'].fillna('Not use', inplace=True)
+over_all_agreement_cv_result.to_csv(file_path + "/over_all.csv")
 over_all_agreement_predict_result = all_df_predict_result[["count_vectorizer", "pre_process", "n_gram",
-                                                           "term", "y_name", "smote", "precision_test_score",
-                                                           "recall_test_score", "f1_test_score", "roc_auc_test_score"]]
+                                                           "term", "y_name", "smote",
+                                                           "precision_test_score", "recall_test_score",
+                                                           "f1_test_score", "roc_auc_test_score"]]
 
 
-def rank_y_names_by_scores(data):
+def rank_y_names_by_scores_ajan_kong(data, y_name):
+    data = data.copy()
     # Group the data by y_name and calculate the mean of the scores
-    data['overall_agreement_score_rank'] = data[['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']].rank(
-        axis=0).mean(axis=1)
-    print('')
-    # grouped = data.groupby("y_name")[["overall_agreement_score"]].mean()
-    #
-    # # Rank the y_name based on the overall agreement scores
-    # ranked = grouped.mean(axis=1).sort_values(ascending=False).reset_index()
-    # ranked.columns = ['y_name', 'average_score']
-    #
-    # # Add a rank column
-    # ranked['rank'] = ranked['average_score'].rank(ascending=False)
-
-    # Add a rank column by overall agreement score
-    # data['overall_agreement_score_rank'] = data['overall_agreement_score'].rank(ascending=False)
-
-    # Merge ranked data back with original dataframe to get full information
-    # merged_df = pd.merge(data, ranked, on='y_name', how='inner')
-
-    # Melt the DataFrame for easier plotting with seaborn
-    melted_df = pd.melt(
-        data,
-        id_vars=[
-            "y_name", "precision_macro", "recall_macro", "f1_macro", "roc_auc",
-            "overall_agreement_score_rank"],
-        value_vars=['count_vectorizer', 'pre_process', 'n_gram', 'term'],
-        var_name='technique',
-        value_name='technique_value'
-    )
-
-    # Generate a boxplot for each technique
-    # This plot shows the distribution of overall agreement scores for each technique is not impact about the rank
-    plt.figure(figsize=(16, 8))
-    sns.boxplot(x='technique_value', y='overall_agreement_score_rank', hue='technique', data=melted_df)
-    plt.title('Boxplot of Overall Agreement Scores by Technique')
-    plt.xlabel('Technique')
-    plt.ylabel('Overall Agreement rank')
-    plt.legend(title='Technique', bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.savefig('../resources/optuna_plot/overall_agreement_scores_by_technique.png')
-    plt.show()
-
-    return data
+    data_at_y = data[data['y_name'] == y_name]
+    data_at_y.set_index(
+        ['count_vectorizer', 'pre_process', 'n_gram', 'term', 'y_name', 'smote', 'normalization'],
+        inplace=True, append=True, drop=False)
+    data_at_y_ranked = data_at_y.rank(axis=0).mean(axis=1)
+    return data_at_y_ranked
 
 
-rank_y_names_by_scores(over_all_agreement_cv_result)
+def rank_y_name_by_me(df, y_name_value):
+    df = df.copy()
+
+    # Filter the DataFrame by the specified y_name
+    df = df[df['y_name'] == y_name_value]
+    # identify which columns are metrics
+    metric_columns = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']
+    # Rank the techniques for each metric
+    for metric in metric_columns:
+        df[metric + '_rank'] = df[metric].rank(ascending=False, method='min')
+    # and mean the ranks to get the overall rank
+    df['overall_rank'] = df[[metric + '_rank' for metric in metric_columns]].mean(axis=1)
+    # Convert overall_rank to an integer rank
+    df['overall_rank'] = df['overall_rank'].rank(ascending=True, method='min').astype(int)
+    # Sort the DataFrame by the overall rank
+    df = df.sort_values(by='overall_rank').reset_index(drop=True)
+
+    # Swap columns to make it look good, put technique columns first
+    technique_columns = ['count_vectorizer', 'pre_process', 'n_gram', 'term', 'smote', 'normalization']
+    # technique_columns = df.columns.difference(
+    #     metric_columns + ['overall_rank'] + [metric + '_rank' for metric in metric_columns])
+    df = df[list(technique_columns) + ['overall_rank'] + [metric + '_rank' for metric in metric_columns]]
+
+    return df
 
 
-def find_top_n_ranks(data, N, y_name):
-    df = data.copy()
-    # Change into float
-    for column in ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']:
-        df[column] = pd.to_numeric(df[column], errors='coerce')
+file_path_to_save_over_all_rank = '../resources/result_optuna_parameter_tuning_round_2/result_as_overall_rank'
 
-    # Filter metrics we used
-    metrics = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']
-    top_n_list = []
-    # Recieve only y_name that we want
-    df_filtered = df[df['y_name'] == y_name]
+ranked_df_code_related = rank_y_name_by_me(over_all_agreement_cv_result, 'code_related')
+# ranked_df_code_related.to_pickle(file_path_to_save_over_all_rank + "/ranked_df_code_related.pkl")
+ranked_df_test_semantic_smell = rank_y_name_by_me(over_all_agreement_cv_result, 'test_semantic_smell')
+# ranked_df_test_semantic_smell.to_pickle(file_path_to_save_over_all_rank + "/ranked_df_test_semantic_smell.pkl")
+ranked_df_issue_in_test_step = rank_y_name_by_me(over_all_agreement_cv_result, 'issue_in_test_step')
+# ranked_df_issue_in_test_step.to_pickle(file_path_to_save_over_all_rank + "/ranked_df_issue_in_test_step.pkl")
+ranked_df_dependency = rank_y_name_by_me(over_all_agreement_cv_result, 'dependencies')
+ranked_df_test_execution = rank_y_name_by_me(over_all_agreement_cv_result, 'test_execution')
 
-    # Find the top N ranks for each metric
-    for metric in metrics:
-        top_n_df = df_filtered.nlargest(N, metric).copy()
-        top_n_df['metric'] = metric
-        top_n_df['rank_at_metric'] = top_n_df[metric].rank(ascending=False)
-        top_n_list.append(top_n_df)
+print('-------------------code related-------------------')
+print(ranked_df_code_related.head(5).to_markdown())
 
-    # Combine the top N DataFrames into a single DataFrame
-    top_n_combined_df = pd.concat(top_n_list, ignore_index=True)
-    top_n_combined_df = top_n_combined_df[
-        ['rank_at_metric', 'metric', 'count_vectorizer', 'pre_process', 'n_gram', 'term',
-         'y_name', 'smote','precision_macro', 'recall_macro', 'f1_macro', 'roc_auc',
-         'overall_agreement_score_rank']]
+print('-------------------test semantic smell-------------------')
+print(ranked_df_test_semantic_smell.head(5).to_markdown())
 
-    return top_n_combined_df
+print('-------------------issue in test step-------------------')
+print(ranked_df_issue_in_test_step.head(5).to_markdown())
 
+# print('-------------------dependencies-------------------')
+# print(ranked_df_dependency.head(5).to_markdown())
+#
+# print('-------------------test execution-------------------')
+# print(ranked_df_test_execution.head(5).to_markdown())
 
-top_5_cv_rank_code_relate = find_top_n_ranks(over_all_agreement_cv_result, 5, 'code_related')
-top_10_cv_rank_code_relate = find_top_n_ranks(over_all_agreement_cv_result, 10, 'code_related')
-top_20_cv_rank_code_relate = find_top_n_ranks(over_all_agreement_cv_result, 20, 'code_related')
-
-top_5_cv_rank_test_sementic = find_top_n_ranks(over_all_agreement_cv_result, 5, 'test_sementic')
-top_10_cv_rank_test_sementic = find_top_n_ranks(over_all_agreement_cv_result, 10, 'test_sementic')
-top_20_cv_rank_test_sementic = find_top_n_ranks(over_all_agreement_cv_result, 20, 'test_sementic')
-
-top_5_cv_rank_issue_in_test_step = find_top_n_ranks(over_all_agreement_cv_result, 5, 'issue_in_test_step')
-top_10_cv_rank_issue_in_test_step = find_top_n_ranks(over_all_agreement_cv_result, 10, 'issue_in_test_step')
-top_20_cv_rank_issue_in_test_step = find_top_n_ranks(over_all_agreement_cv_result, 20, 'issue_in_test_step')
+# check combination rank 1 in each y_name
+# data = over_all_agreement_cv_result.copy()
+# data_at_y = data[data['y_name'] == 'code_related']
+# data_at_y.set_index(['count_vectorizer', 'pre_process', 'n_gram', 'term', 'y_name', 'smote'],
+#                     inplace=True, append=True, drop=False)
+# data_at_y_ranked = data_at_y['precision_macro'].rank(ascending=False, method='min').sort_values(ascending=True)
+# print(data_at_y_ranked.head(5).to_markdown())
