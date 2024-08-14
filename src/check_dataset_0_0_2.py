@@ -126,24 +126,31 @@ cv_score_smote_dataset_lda_lsa_prowsyn_df['smote'] = 'prowsyn'
 cv_score_normal_dataset_normalized_df = loop_dict_optuna_list_to_df(cv_score_normal_dataset_normalized.copy(),
                                                                     columns_i_dont_want)
 cv_score_normal_dataset_normalized_df['smote'] = 'no'
+cv_score_normal_dataset_normalized_df['normalization'] = 'min_max'
 cv_score_normal_dataset_lda_lsa_normalized_df = loop_dict_optuna_list_to_df(
     cv_score_normal_dataset_lda_lsa_normalized.copy(),
     columns_i_dont_want)
 cv_score_normal_dataset_lda_lsa_normalized_df['smote'] = 'no'
+cv_score_normal_dataset_lda_lsa_normalized_df['normalization'] = 'min_max'
 cv_score_smote_dataset_normalized_polynom_df = loop_dict_optuna_list_to_df(
     cv_score_smote_dataset_normalized_polynom.copy(),
     columns_i_dont_want)
 cv_score_smote_dataset_normalized_polynom_df['smote'] = 'polynom_fit'
+cv_score_smote_dataset_normalized_polynom_df['normalization'] = 'min_max'
 cv_score_smote_dataset_normalized_prowsyn_df = loop_dict_optuna_list_to_df(
     cv_score_smote_dataset_normalized_prowsyn.copy(),
     columns_i_dont_want)
 cv_score_smote_dataset_normalized_prowsyn_df['smote'] = 'prowsyn'
+cv_score_smote_dataset_normalized_prowsyn_df['normalization'] = 'min_max'
 cv_score_smote_dataset_lda_lsa_normalized_polynom_df = loop_dict_optuna_list_to_df(
     cv_score_smote_dataset_lda_lsa_normalized_polynom.copy(), columns_i_dont_want)
 cv_score_smote_dataset_lda_lsa_normalized_polynom_df['smote'] = 'polynom_fit'
+cv_score_smote_dataset_lda_lsa_normalized_polynom_df['normalization'] = 'min_max'
 cv_score_smote_dataset_lda_lsa_normalized_prowsyn_df = loop_dict_optuna_list_to_df(
     cv_score_smote_dataset_lda_lsa_normalized_prowsyn.copy(), columns_i_dont_want)
 cv_score_smote_dataset_lda_lsa_normalized_prowsyn_df['smote'] = 'prowsyn'
+cv_score_smote_dataset_lda_lsa_normalized_prowsyn_df['normalization'] = 'min_max'
+
 dict_df_cv = {
     'cv_score_normal_df': cv_score_normal_df,
     'cv_score_smote_polynom_fit_df': cv_score_smote_polynom_fit_df,
@@ -229,12 +236,10 @@ def save_data_as_df(data_df, variable_name, data_dir=""):
 
 
 # Save the DataFrames as pickle files
-directory_to_save = os.path.join(data_dir, "result_as_df")
-for var_name, data in dict_df_cv.items():
-    save_data_as_df(data, var_name, directory_to_save)
-
-for var_name, data in dict_df_predict.items():
-    save_data_as_df(data, var_name, directory_to_save)
-
-
+# directory_to_save = os.path.join(data_dir, "result_as_df")
+# for var_name, data in dict_df_cv.items():
+#     save_data_as_df(data, var_name, directory_to_save)
+#
+# for var_name, data in dict_df_predict.items():
+#     save_data_as_df(data, var_name, directory_to_save)
 

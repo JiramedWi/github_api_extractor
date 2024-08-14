@@ -156,4 +156,15 @@ class github_api:
         headers = {"Accept": "application/vnd.github.v3.star+json"
             ,'Authorization': 'Bearer ' + token}
         response = requests.get(url, headers=headers)
-        return response.json()
+        rate_limit_data = response.json()
+        remining = rate_limit_data['rate']['remaining']
+        reset = rate_limit_data['rate']['reset']
+        return remining, reset
+
+
+    @staticmethod
+    def remove_invalid_rows(df, columns, invalid_values=[None, '-', '']):
+        filtered_df = df[
+            ~df[columns].apply(lambda x: x.isin(invalid_values).any(), axis=1)
+        ]
+        return filtered_df[columns]
