@@ -10,9 +10,11 @@ from pathlib import Path
 import requests
 
 from get_github_api import github_api
+
 line_url = 'https://notify-api.line.me/api/notify'
 headers = {'content-type': 'application/x-www-form-urlencoded',
            'Authorization': 'Bearer ' + 'nHKxy92Z03QXUNvN3jfc61AV6fnPgrPC1cVuxeqWzE0'}
+
 
 class collect_pulls:
     def __init__(self, url):
@@ -25,6 +27,12 @@ class collect_pulls:
                                  'after_change': [], 'commit_id_before': [],
                                  'commit_id_after': []}
         self.request_count = 0
+        self.last_url = None
+
+    def save_string_to_file(self, file_path):
+
+        with open(file_path, 'w') as file:
+            file.write(self.last_url)
 
     def save_pull_request(self, state):
         eurl = self.url
@@ -54,9 +62,9 @@ class collect_pulls:
         if remaining < 500:  # If close to the rate limit, pause
             current_time = time.time()
             wait_time = max(reset_time - current_time, 0) + 60  # Add 1 minute buffer
-            print(f"Approaching rate limit. Sleeping for {wait_time/60:.2f} minutes.")
+            print(f"Approaching rate limit. Sleeping for {wait_time / 60:.2f} minutes.")
             # line noti
-            message = f"Approaching rate limit. Sleeping for {wait_time/60:.2f} minutes."
+            message = f"Approaching rate limit. Sleeping for {wait_time / 60:.2f} minutes."
             payload = {'message': message}
             r = requests.post(line_url, headers=headers, params=payload)
             print(r.text)
@@ -71,24 +79,36 @@ class collect_pulls:
             print(r.text)
             self.request_count = 0
 
-
-    def save_testing_pulls(self, df):
+    def save_testing_pulls(self, df, last_processed_url=None):
         temp = []
+        resume = last_processed_url is None  # Flag to start processing right away if no log
+
         for url in df['url']:
+            # Skip until the last processed URL is found
+            if not resume:
+                if url == last_processed_url:
+                    resume = True  # Start processing after finding the last processed URL
+                continue
+
             print(url)
             eurl = github_api.extract_url_pulls(url)
             testing_pull = github_api.get_files_change(eurl[0], eurl[1], eurl[2], self.token)
             self.request_count += 1
-            df = pandas.json_normalize(testing_pull)
-            df = df.dropna()
-            # Check rate limit only every 4000 requests
+
+            df_files = pd.json_normalize(testing_pull)
+            df_files = df_files.dropna()
+
+            # Check rate limit every 4500 requests
             if self.request_count >= 4500:
                 self.check_and_wait()
+
             # Reset the request count after checking
-            if testing_pull and df['filename'].str.contains(pat=r'\btest\b', regex=True).any():
-                df['pulls_url'] = url
+            if testing_pull and df_files['filename'].str.contains(pat=r'\btest\b', regex=True).any():
+                df_files['pulls_url'] = url
                 print('it has')
-                temp.append(df)
+                temp.append(df_files)
+
+            # Save intermediate results every 30 entries
             if len(temp) != 0 and len(temp) % 30 == 0:
                 temp_save = pd.concat(temp)
                 temp_save['pulls_url'].dropna(axis=0, inplace=True)
@@ -97,11 +117,10 @@ class collect_pulls:
                 temp_save.to_pickle(
                     self.logger_path / f"{eurl[0]}_{eurl[1]}_testing_pulls_at_{eurl[2]}_at{len(temp)}.pkl")
                 print('save')
-        result = pd.concat(temp)
-        result['pulls_url'].dropna(axis=0, inplace=True)
-        result.to_pickle(self.save_path / f"{eurl[0]}_{eurl[1]}_testing_merged_pulls.pkl")
-        result = result.set_index('pulls_url')
-        return result
+
+                # Log the last processed URL to track progress
+                self.last_url = url
+                self.save_string_to_file(self.logger_path / f"last_processed_url.txt")
 
 
 if __name__ == '__main__':
@@ -117,6 +136,11 @@ if __name__ == '__main__':
     flink_df = pd.read_pickle(flink_pull_request)
     flink_df = github_api.remove_invalid_rows(flink_df, ['url', 'title', 'body', 'base.sha', 'merge_commit_sha'])
     flink_df = s.save_testing_pulls(flink_df)
+    # line noti for done save pull request
+    message = f"Done save pull request flink"
+    payload = {'message': message}
+    r = requests.post(line_url, headers=headers, params=payload)
+    print(r.text)
     cassandra_pull_request = "../resources/pull_request_projects/cassandra_pulls.pkl"
     cassandra_df = pd.read_pickle(cassandra_pull_request)
 
@@ -124,5 +148,3 @@ if __name__ == '__main__':
     # result = s.save_testing_pulls(os.path.abspath('../resources/json-iterator_java_all_closed_requests.pkl'))
     # result = s.save_testing_pulls(os.path.abspath('../resources/apache_flink_all_closed_requests.pkl'))
     check = github_api.check_rate_limit('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')
-
-
