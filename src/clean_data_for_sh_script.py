@@ -17,3 +17,8 @@ def remove_invalid_rows(df, columns, invalid_values=[None, '-', '']):
 
 
 filtered_df_flink = remove_invalid_rows(flink_df, ['url', 'title', 'body', 'base.sha', 'merge_commit_sha'])
+flink_test_pulls = pd.read_pickle("../resources/Logger/flink_testing_pulls.pkl")
+flink_test_pulls.drop_duplicates(subset=['pulls_url'], inplace=True)
+
+
+cassandra_test_pulls = pd.read_pickle("../resources/pull_request_projects/cassandra_testing_pulls.pkl")
