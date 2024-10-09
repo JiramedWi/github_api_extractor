@@ -1,3 +1,5 @@
+import pickle
+
 import pandas as pd
 
 # check the data in logger
@@ -24,3 +26,6 @@ unique_pull_url_flink = df_testing_pulls_flink['pulls_url'].unique()
 testing_pulls_casssandra = '/home/pee/repo/github_api_extractor/resources/Logger/cassandra_testing_pulls.pkl'
 df_testing_pulls_cassandra = pd.read_pickle(testing_pulls_casssandra)
 unique_pull_url_cassandra = df_testing_pulls_cassandra['pulls_url'].unique()
+
+# open hive_use_for_run_pre_process.pkl
+hive_use_for_run = pd.read_pickle('/home/pee/repo/github_api_extractor/resources/hive_use_for_run_pre_process.pkl')
