@@ -15,20 +15,19 @@ system = platform.system()
 if system == 'Darwin':  # macOS
     project_repo_path = '/path/to/your/project/repo/on/mac'
     tsdetect_path = '/path/to/your/tsdetect/TestSmellDetector.jar/on/mac'
-    directory_path = '/path/to/your/directory/on/mac'
+    save_result_path = '/path/to/your/directory/on/mac'
+    project_sha = pd.read_pickle(
+        Path(os.path.abspath('/path/to/your/directory/on/mac/hive_use_for_run_pre_process.pkl')))
+    project_sha.reset_index(drop=True, inplace=True)
 elif system == 'Linux':
-    project_repo_path = '/home/pee/IdeaProjects/hive'
+    # Change path here
+    project_repo_path = '/home/pee/repo'
     tsdetect_path = '/home/pee/repo/github_api_extractor/resources/tsdetect/TestSmellDetector.jar'
-    directory_path = '/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive'
+    save_result_path = '/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive'
+    project_sha = pd.read_pickle(f'{save_result_path}/hive_use_for_run_pre_process.pkl')
+    project_sha.reset_index(drop=True, inplace=True)
 else:
     raise EnvironmentError('Unsupported operating system')
-
-project_sha = pd.read_pickle(Path(os.path.abspath('../resources/hive_use_for_run_pre_process.pkl')))
-project_sha.reset_index(drop=True, inplace=True)
-
-project_repo = Repo(project_repo_path)
-checkout = project_repo.git.checkout
-fetch = project_repo.git.fetch
 
 logging.info('Initialized project repository and paths.')
 
@@ -56,60 +55,70 @@ def collect_test_files(root_dir):
 
 
 def write_file_to_use_in_Jar(project):
-    testcase_files = collect_test_files(directory_path)
+    testcase_files = collect_test_files(save_result_path)
     df = pd.DataFrame([(project, testcase_file) for testcase_file in testcase_files])
     logging.info(f'Created DataFrame for project {project} with test case files.')
     return df
 
 
-# TODO: Add new sequence about cloning and delete after write run tsdetect
-repo = Repo.clone_from('https://github.com/ozone-his/ozone.git', '/home/pee/IdeaProjects/ozone', no_checkout=True)
-repo.git.checkout('7fa3cf1bef5af455e802467eac89cc0b73e097dc')
+def clone_and_checkout(repo_url, clone_path, sha):
+    if os.path.exists(clone_path):
+        logging.info(f'Removing existing directory: {clone_path}')
+        subprocess.run(['rm', '-rf', clone_path])
+    logging.info(f'Cloning repository from {repo_url} to {clone_path}')
+    print(repo_url)
+    repo = Repo.clone_from(repo_url, clone_path, no_checkout=True)
+    repo.git.checkout(sha)
+    logging.info(f'Checked out SHA: {sha}')
+    return repo
 
 
-def process_sha(count, url, sha_opened, sha_closed):
-    logging.info(f'Processing SHA for URL: {url}')
-    logging.info(f'Checking out SHA opened: {sha_opened}')
-    fetch()
-    logging.info(f'fetching')
-    checkout(sha_opened)
-    logging.info('Checked out closed SHA.')
-    testfiles = write_file_to_use_in_Jar('hive')
-    testfiles.to_csv(os.path.abspath(f"../resources/tsdetect/open_hive_file_{count}_{sha_opened}.csv"), index=False,
-                     header=None)
-    logging.info(f'Saved test files for open SHA to CSV: open_hive_file_{count}_{sha_opened}.csv')
-    time.sleep(5)
-    subprocess.run(['java', '-jar', tsdetect_path,
-                    f"/Users/Jumma/github_repo/github_api_extractor/resources/tsdetect/open_hive_file_{count}_{sha_opened}.csv"])
-    logging.info('Ran TestSmellDetector for open SHA.')
-
-    logging.info(f'Checking out SHA closed: {sha_closed}')
-    fetch()
-    checkout(sha_closed)
-    logging.info('Checked out open SHA.')
-    testfiles = write_file_to_use_in_Jar('hive')
-    testfiles.to_csv(os.path.abspath(f"../resources/tsdetect/closed_hive_file_{count}_{sha_closed}.csv"), index=False,
-                     header=None)
-    logging.info(f'Saved test files for closed SHA to CSV: closed_hive_file_{count}_{sha_closed}.csv')
-    time.sleep(5)
-    subprocess.run(['java', '-jar', tsdetect_path,
-                    f"/Users/Jumma/github_repo/github_api_extractor/resources/tsdetect/closed_hive_file_{count}_{sha_closed}.csv"])
-    logging.info('Ran TestSmellDetector for closed SHA.')
-    time.sleep(5)
+def run_tsdetect(project_name: str, count, sha_type, sha, testfile_prefix):
+    testfiles = write_file_to_use_in_Jar(project_name)
+    testfile_path = f"{save_result_path}/csv/{testfile_prefix}_{project_name}_file_{count}_{sha}.csv"
+    testfiles.to_csv(testfile_path, index=False, header=None)
+    logging.info(f'Saved test files for {sha_type} SHA to CSV: {testfile_prefix}_{project_name}_file_{count}_{sha}.csv')
+    subprocess.run(['java', '-jar', tsdetect_path, testfile_path])
+    logging.info(f'Ran TestSmellDetector for {sha_type} SHA.')
 
 
-def auto_checkout():
-    sha_opened = project_sha['closed']
-    sha_closed = project_sha['open']
+def auto_process_checkout(count, project_name, project_url, url, sha_opened, sha_closed):
+    print(project_name)
+    clone_path = f'{project_repo_path}/tmp/clone_repo_{count}_{project_name}'
+
+    # Clone and checkout open SHA
+    logging.info(f'Processing open SHA for URL: {project_url} at pull request {url}')
+    repo = clone_and_checkout(project_url, clone_path, sha_opened)
+    run_tsdetect(project_name, count, "open", sha_opened, 'open')
+
+    # Remove cloned directory
+    logging.info(f'Removing directory: {clone_path}')
+    subprocess.run(['rm', '-rf', clone_path])
+
+    # Clone and checkout closed SHA
+    logging.info(f'Processing closed SHA for URL: {project_url} at pull request {url}')
+    repo = clone_and_checkout(project_url, clone_path, sha_closed)
+    run_tsdetect(project_name, count, "closed", sha_closed, 'closed')
+
+    # Remove cloned directory again
+    logging.info(f'Removing directory: {clone_path}')
+    subprocess.run(['rm', '-rf', clone_path])
+
+
+def auto_checkout(project_name: str, project_url: str):
+    sha_opened = project_sha['open']
+    sha_closed = project_sha['closed']
     urls = project_sha['url']
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        futures = [executor.submit(process_sha, count, url, sha_opened[count], sha_closed[count]) for count, url in
-                   enumerate(urls)]
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = [
+            executor.submit(auto_process_checkout, count, project_name, project_url, url, sha_opened[count],
+                            sha_closed[count]) for
+            count, url in enumerate(urls)]
         for future in futures:
             future.result()
 
     logging.info('Completed auto checkout process.')
 
-# auto_checkout()
-#
+
+auto_checkout('hive', 'https://github.com/apache/hive.git')
