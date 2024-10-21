@@ -1,13 +1,52 @@
+import re
+
 import pandas as pd
 from pathlib import Path
+from logging.handlers import RotatingFileHandler
 from git import Repo
 import os, subprocess, platform
 from concurrent.futures import ThreadPoolExecutor
 import logging
+import shutil
+
 
 # Configure logging
-logging.basicConfig(filename='process_log.log', level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+# Set up a rotating file handler that limits log file size to 10 MB with backup log files
+log_handler = RotatingFileHandler('process_log.log', maxBytes=10*1024*1024, backupCount=5)
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+log_handler.setFormatter(log_formatter)
+
+# Set up the logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(log_handler)
+
+logging.info('Logging initialized with file rotation.')
+
+
+# Check the disk space before running the process
+def check_disk_usage(path, min_free_space_gb):
+    total, used, free = shutil.disk_usage(path)
+    free_gb = free / (1024 ** 3)
+    if free_gb < min_free_space_gb:
+        raise Exception(f"Low disk space. Only {free_gb:.2f} GB remaining.")
+    logging.info(f"Disk space check passed: {free_gb:.2f} GB free.")
+
+
+# Get  the pull request number from the URL
+def get_pr_number(url: str) -> int:
+    try:
+        # Use regular expression to extract the pull request number from the URL
+        match = re.search(r'/pulls/(\d+)', url)
+        if match:
+            return int(match.group(1))
+        else:
+            # Log an error if the URL is invalid
+            raise ValueError("Invalid GitHub pull request URL")
+    except ValueError as e:
+        # Log the error message
+        logging.error("Error: %s - URL: %s", e, url)
+        raise  # Optionally re-raise the exception if needed
 
 
 # Determine the operating system and set paths accordingly
@@ -61,6 +100,8 @@ def collect_test_files(root_dir):
     try:
         test_files = []
         for dirpath, _, filenames in os.walk(root_dir):
+            # print walk through directories for debugging
+            print(dirpath, filenames)
             if is_test_directory(dirpath):
                 for filename in filenames:
                     if is_test_file(filename):
@@ -73,9 +114,9 @@ def collect_test_files(root_dir):
 
 
 # Write the test files to a CSV that can be used with the TestSmellDetector.jar
-def write_test_files_to_csv(project, save_result_path):
+def write_test_files_to_csv(project, directory_repo):
     try:
-        test_files = collect_test_files(save_result_path)
+        test_files = collect_test_files(directory_repo)
         df = pd.DataFrame([(project, test_file) for test_file in test_files])
         logging.info(f'Created DataFrame for project {project} with test case files.')
         return df
@@ -85,32 +126,46 @@ def write_test_files_to_csv(project, save_result_path):
 
 
 # Clone the repository and checkout the specific SHA
+# TODO: Reset head everytime before checkout the new SHA
 def clone_and_checkout(repo_url, clone_path, sha):
     try:
-        if os.path.exists(clone_path):
-            logging.info(f'Removing existing directory: {clone_path}')
-            subprocess.run(['rm', '-rf', clone_path])
+        if not os.path.exists(clone_path):
+            # Clone only if the repository doesn't exist
+            logging.info(f'Cloning repository from {repo_url} to {clone_path}')
+            repo = Repo.clone_from(repo_url, clone_path)
+        else:
+            logging.info(f'Reusing existing repository at {clone_path}')
 
-        logging.info(f'Cloning repository from {repo_url} to {clone_path}')
-        repo = Repo.clone_from(repo_url, clone_path, no_checkout=True)
+        repo = Repo(clone_path)
+
+        # Reset any local changes (remove untracked and modified files)
+        logging.info(f'Cleaning local changes in {clone_path}')
+        repo.git.reset('--hard')
+        repo.git.clean('-fd')
+
+        # Checkout the desired SHA
+        logging.info(f'Checking out SHA: {sha}')
         repo.git.checkout(sha)
-        logging.info(f'Checked out SHA: {sha}')
+
         return repo
     except Exception as e:
-        logging.error(f'Error cloning and checking out repository {repo_url} at {sha}, Error: {e}', exc_info=True)
+        logging.error(f'Error during checkout and processing at {sha}, Error: {e}', exc_info=True)
         raise
 
 
 # Run the TestSmellDetector tool for the given SHA
-def run_tsdetect(project_name, count, sha_type, sha, testfile_prefix, save_result_path, tsdetect_path):
+def run_tsdetect(project_url, project_name, count, sha_type, sha, testfile_prefix, directory_repo, save_result_path,
+                 tsdetect_path):
     try:
-        test_files = write_test_files_to_csv(project_name, save_result_path)
+        test_files = write_test_files_to_csv(project_url, directory_repo)
         testfile_path = f"{save_result_path}/csv/{testfile_prefix}_{project_name}_file_{count}_{sha}.csv"
         test_files.to_csv(testfile_path, index=False, header=None)
         logging.info(
             f'Saved test files for {sha_type} SHA to CSV: {testfile_prefix}_{project_name}_file_{count}_{sha}.csv')
 
-        subprocess.run(['java', '-jar', tsdetect_path, testfile_path])
+        # TODO: Change the argurment when run java to more specific naming, Add pull number and SHA to naming file
+        pull_number = get_pr_number(project_url)
+        subprocess.run(['java', '-jar', tsdetect_path, testfile_path, sha_type, sha, pull_number])
         logging.info(f'Ran TestSmellDetector for {sha_type} SHA.')
     except Exception as e:
         logging.error(f'Error running TestSmellDetector for {sha_type} SHA: {sha}, Error: {e}', exc_info=True)
@@ -124,16 +179,18 @@ def process_checkout(count, project_name, project_url, url, sha_opened, sha_clos
     try:
         # Process open SHA
         logging.info(f'Processing open SHA for URL: {project_url} at pull request {url}')
-        repo = clone_and_checkout(project_url, clone_path, sha_opened)
-        run_tsdetect(project_name, count, "open", sha_opened, 'open', paths['save_result_path'], paths['tsdetect_path'])
+        clone_and_checkout(project_url, clone_path, sha_opened)
+        run_tsdetect(project_url, project_name, count, "open", sha_opened, 'open', clone_path,
+                     paths['save_result_path'],
+                     paths['tsdetect_path'])
 
         # Remove cloned directory
         subprocess.run(['rm', '-rf', clone_path])
 
         # Process closed SHA
         logging.info(f'Processing closed SHA for URL: {project_url} at pull request {url}')
-        repo = clone_and_checkout(project_url, clone_path, sha_closed)
-        run_tsdetect(project_name, count, "closed", sha_closed, 'closed', paths['save_result_path'],
+        clone_and_checkout(project_url, clone_path, sha_closed)
+        run_tsdetect(project_name, count, "closed", sha_closed, 'closed', clone_path, paths['save_result_path'],
                      paths['tsdetect_path'])
 
         # Clean up cloned directory again
@@ -147,18 +204,24 @@ def process_checkout(count, project_name, project_url, url, sha_opened, sha_clos
 # Perform the auto-checkout for all SHAs in the project
 def auto_checkout(project_name, project_url, paths):
     try:
+        # TODO: Seperate 6 chunk of data to run batch in 6 worker
         sha_opened = paths['project_sha']['open']
         sha_closed = paths['project_sha']['closed']
         urls = paths['project_sha']['url']
 
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            futures = [
-                executor.submit(process_checkout, count, project_name, project_url, url, sha_opened[count],
-                                sha_closed[count], paths)
-                for count, url in enumerate(urls)
-            ]
-            for future in futures:
-                future.result()
+        # TODO: Check sync
+        for i in range(0, len(urls), 6):  # Process in batches of 6
+            check_disk_usage('/', 100)  # Ensure at least 100GB free before starting
+            batch_urls = urls[i:i + 6]
+
+            with ThreadPoolExecutor(max_workers=6) as executor:
+                futures = [
+                    executor.submit(process_checkout, count, project_name, project_url, url, sha_opened[count],
+                                    sha_closed[count], paths)
+                    for count, url in enumerate(batch_urls)
+                ]
+                for future in futures:
+                    future.result()
 
         logging.info('Completed auto-checkout process.')
     except Exception as e:
