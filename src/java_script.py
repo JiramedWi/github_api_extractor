@@ -34,12 +34,12 @@ def check_disk_usage(path, min_free_space_gb):
 
 
 # Get  the pull request number from the URL
-def get_pr_number(url: str) -> int:
+def get_pr_number(url: str):
     try:
         # Use regular expression to extract the pull request number from the URL
         match = re.search(r'/pulls/(\d+)', url)
         if match:
-            return int(match.group(1))
+            return match.group(1)
         else:
             # Log an error if the URL is invalid
             raise ValueError("Invalid GitHub pull request URL")
@@ -126,7 +126,6 @@ def write_test_files_to_csv(project, directory_repo):
 
 
 # Clone the repository and checkout the specific SHA
-# TODO: Reset head everytime before checkout the new SHA
 def clone_and_checkout(repo_url, clone_path, sha):
     try:
         if not os.path.exists(clone_path):
@@ -154,7 +153,7 @@ def clone_and_checkout(repo_url, clone_path, sha):
 
 
 # Run the TestSmellDetector tool for the given SHA
-def run_tsdetect(project_url, project_name, count, sha_type, sha, testfile_prefix, directory_repo, save_result_path,
+def run_tsdetect(project_url, pull_url, project_name, count, sha_type, sha, testfile_prefix, directory_repo, save_result_path,
                  tsdetect_path):
     try:
         test_files = write_test_files_to_csv(project_url, directory_repo)
@@ -163,24 +162,30 @@ def run_tsdetect(project_url, project_name, count, sha_type, sha, testfile_prefi
         logging.info(
             f'Saved test files for {sha_type} SHA to CSV: {testfile_prefix}_{project_name}_file_{count}_{sha}.csv')
 
-        # TODO: Change the argurment when run java to more specific naming, Add pull number and SHA to naming file
-        pull_number = get_pr_number(project_url)
-        subprocess.run(['java', '-jar', tsdetect_path, testfile_path, sha_type, sha, pull_number])
-        logging.info(f'Ran TestSmellDetector for {sha_type} SHA.')
+        pull_number = get_pr_number(pull_url)
+        try:
+            subprocess.run(['java', '-jar', tsdetect_path, testfile_path, sha_type, sha, pull_number])
+            logging.info(f'Ran TestSmellDetector for {sha_type} SHA.')
+
+        except Exception as e:
+            logging.error(f'''Error running TestSmellDetector for {sha_type} SHA: {sha},
+            testfile_path:  {testfile_path}, 
+            Error: {e}''', exc_info=True)
     except Exception as e:
-        logging.error(f'Error running TestSmellDetector for {sha_type} SHA: {sha}, Error: {e}', exc_info=True)
+        logging.error(f'''Error running TestSmellDetector for {sha_type} SHA: {sha},
+                    Error: {e}''', exc_info=True)
         raise
 
 
 # Clone the repository, checkout both SHAs, and run the detector
-def process_checkout(count, project_name, project_url, url, sha_opened, sha_closed, paths):
+def process_checkout(count, project_name, project_url, pull_url, sha_opened, sha_closed, paths):
     clone_path = f"{paths['project_repo_path']}/tmp/clone_repo_{count}_{project_name}"
 
     try:
         # Process open SHA
-        logging.info(f'Processing open SHA for URL: {project_url} at pull request {url}')
+        logging.info(f'Processing open SHA for URL: {project_url} at pull request {pull_url}')
         clone_and_checkout(project_url, clone_path, sha_opened)
-        run_tsdetect(project_url, project_name, count, "open", sha_opened, 'open', clone_path,
+        run_tsdetect(project_url, pull_url, project_name, count, "open", sha_opened, 'open', clone_path,
                      paths['save_result_path'],
                      paths['tsdetect_path'])
 
@@ -188,15 +193,16 @@ def process_checkout(count, project_name, project_url, url, sha_opened, sha_clos
         subprocess.run(['rm', '-rf', clone_path])
 
         # Process closed SHA
-        logging.info(f'Processing closed SHA for URL: {project_url} at pull request {url}')
+        logging.info(f'Processing closed SHA for URL: {project_url} at pull request {pull_url}')
         clone_and_checkout(project_url, clone_path, sha_closed)
-        run_tsdetect(project_name, count, "closed", sha_closed, 'closed', clone_path, paths['save_result_path'],
+        run_tsdetect(project_url, pull_url, project_name, count, "closed", sha_closed, 'closed', clone_path,
+                     paths['save_result_path'],
                      paths['tsdetect_path'])
 
         # Clean up cloned directory again
         subprocess.run(['rm', '-rf', clone_path])
     except Exception as e:
-        logging.error(f'Error during checkout and processing of SHAs for {project_name} at {url}, Error: {e}',
+        logging.error(f'Error during checkout and processing of SHAs for {project_name} at {pull_url}, Error: {e}',
                       exc_info=True)
         raise
 
@@ -204,28 +210,61 @@ def process_checkout(count, project_name, project_url, url, sha_opened, sha_clos
 # Perform the auto-checkout for all SHAs in the project
 def auto_checkout(project_name, project_url, paths):
     try:
-        # TODO: Seperate 6 chunk of data to run batch in 6 worker
         sha_opened = paths['project_sha']['open']
         sha_closed = paths['project_sha']['closed']
         urls = paths['project_sha']['url']
 
-        # TODO: Check sync
-        for i in range(0, len(urls), 6):  # Process in batches of 6
-            check_disk_usage('/', 100)  # Ensure at least 100GB free before starting
-            batch_urls = urls[i:i + 6]
+        # Determine the number of datasets and number of workers
+        total_datasets = len(urls)
+        num_workers = 6
 
-            with ThreadPoolExecutor(max_workers=6) as executor:
-                futures = [
-                    executor.submit(process_checkout, count, project_name, project_url, url, sha_opened[count],
-                                    sha_closed[count], paths)
-                    for count, url in enumerate(batch_urls)
-                ]
-                for future in futures:
-                    future.result()
+        # Calculate the chunk size for each worker
+        chunk_size = total_datasets // num_workers
+        remainder = total_datasets % num_workers  # Handle leftover datasets
+
+        # Ensure disk space is available before starting
+        check_disk_usage('/', 100)  # Ensure at least 100GB free before starting
+
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = []
+            start_index = 0
+
+            for worker_id in range(num_workers):
+                # Determine the range of data for this worker
+                end_index = start_index + chunk_size + (1 if worker_id < remainder else 0)  # Distribute the remainder
+                batch_urls = urls[start_index:end_index]
+                batch_sha_opened = sha_opened[start_index:end_index]
+                batch_sha_closed = sha_closed[start_index:end_index]
+
+                # Submit the batch to the worker
+                futures.append(executor.submit(process_checkout_batch, worker_id, project_name, project_url,
+                                               batch_urls, batch_sha_opened, batch_sha_closed, paths))
+
+                # Update start_index for the next worker
+                start_index = end_index
+
+            # Wait for all workers to complete
+            for future in futures:
+                future.result()
 
         logging.info('Completed auto-checkout process.')
+
     except Exception as e:
         logging.error(f'Error during auto-checkout process for {project_name}, Error: {e}', exc_info=True)
+        raise
+
+
+# Process the checkout for each batch of data assigned to a worker
+def process_checkout_batch(worker_id, project_name, project_url, urls, sha_opened, sha_closed, paths):
+    try:
+        for count, url in enumerate(urls):
+            # Process individual SHAs within the chunk assigned to this worker
+            process_checkout(count, project_name, project_url, url, sha_opened[count], sha_closed[count], paths)
+
+        logging.info(f'Worker {worker_id} completed processing of its dataset chunk.')
+
+    except Exception as e:
+        logging.error(f'Error during batch processing by worker {worker_id}: {e}', exc_info=True)
         raise
 
 
