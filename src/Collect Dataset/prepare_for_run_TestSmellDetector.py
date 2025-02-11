@@ -15,6 +15,8 @@ class ProjectDataProcessorForTSdetector:
         # Extract the SHA from pull request
         url = self.project_test_pulls['pulls_url'].drop_duplicates()
         project_issue_filtered = self.all_pulls[self.all_pulls['url'].isin(url)]
+        # drop Nan values in merge_at column
+        project_issue_filtered = project_issue_filtered.dropna(subset=['merged_at'])
         columns = ['url', 'base.sha', 'merge_commit_sha']
         project_issue_filtered = project_issue_filtered.filter(columns)
         project_issue_filtered = project_issue_filtered.rename(columns={'base.sha': 'open', 'merge_commit_sha': 'closed'})
@@ -42,16 +44,16 @@ class ProjectDataProcessorForTSdetector:
 
 # Usage example:
 # for flink project
-processor = ProjectDataProcessorForTSdetector('../resources/pull_request_projects/flink_testing_pulls.pkl',
-                                              '../resources/pull_request_projects/flink_pulls.pkl',
-                                              '../resources/pull_request_projects/')
+processor = ProjectDataProcessorForTSdetector('/home/pee/repo/github_api_extractor/resources/pull_request_projects/flink_testing_pulls.pkl',
+                                              '/home/pee/repo/github_api_extractor/resources/pull_request_projects/flink_pulls.pkl',
+                                              '/home/pee/repo/github_api_extractor/resources/pull_request_projects')
 save_java_flink = processor.extract_sha_and_save('flink_use_for_run_java.pkl')
 pre_process_flink = processor.extract_issue_description_and_save('flink_use_for_run_pre_process.pkl')
 
 # for cassandra project
-processor = ProjectDataProcessorForTSdetector('../resources/pull_request_projects/cassandra_testing_pulls.pkl',
-                                              '../resources/pull_request_projects/cassandra_pulls.pkl',
-                                              '../resources/pull_request_projects/')
+processor = ProjectDataProcessorForTSdetector('/home/pee/repo/github_api_extractor/resources/pull_request_projects/cassandra_testing_pulls.pkl',
+                                              '/home/pee/repo/github_api_extractor/resources/pull_request_projects/cassandra_pulls.pkl',
+                                              '/home/pee/repo/github_api_extractor/resources/pull_request_projects')
 
 save_java_cassandra = processor.extract_sha_and_save('cassandra_use_for_run_java.pkl')
 pre_process_cassandra = processor.extract_issue_description_and_save('cassandra_use_for_run_pre_process.pkl')
