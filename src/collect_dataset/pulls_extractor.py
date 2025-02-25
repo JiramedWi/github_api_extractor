@@ -21,8 +21,8 @@ class CollectingPulls:
         self.url = github_api.extract_url(url)
         self.token = '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'
         # TODO: write new file path to store the file
-        self.save_path = Path(os.path.abspath('../resources'))
-        self.logger_path = Path(os.path.abspath('../resources/Logger'))
+        self.save_path = Path(os.path.abspath('../../resources'))
+        self.logger_path = Path(os.path.abspath('../../resources/Logger'))
         self.result_dataframe = {'project_name': [], 'issue': [], 'file_target': [], 'before_change': [],
                                  'after_change': [], 'commit_id_before': [],
                                  'commit_id_after': []}
@@ -141,23 +141,22 @@ if __name__ == '__main__':
     # s = CollectingPulls('https://github.com/coder/vscode-coder')
     s = CollectingPulls('https://github.com/apache/flink')
     # s = CollectingPulls('https://github.com/apache/dubbo')
-    # s = CollectingPulls('https://github.com/apache/flink')
     # s = CollectingPulls('https://github.com/json-iterator/java')
     # df = s.save_pull_request('open')
     # a = s.test_get_null()
     # df1 = s.check_testing_pulls(os.path.abspath('../resources/coder_vscode-coder_all_closed_requests.pkl'))
 
-    # flink_pull_request = "../resources/pull_request_projects/flink_pulls.pkl"
-    # flink_df = pd.read_pickle(flink_pull_request)
-    # flink_df = github_api.remove_invalid_rows(flink_df, ['url', 'title', 'body', 'base.sha', 'merge_commit_sha'])
+    flink_pull_request = "../resources/pull_request_projects/flink_pulls.pkl"
+    flink_df = pd.read_pickle(flink_pull_request)
+    flink_df = github_api.remove_invalid_rows(flink_df, ['url', 'title', 'body', 'base.sha', 'merge_commit_sha'])
 
-    cassandra_pull_request = "../resources/pull_request_projects/cassandra_pulls.pkl"
-    cassandra_df = pd.read_pickle(cassandra_pull_request)
-    cassandra_df = github_api.remove_invalid_rows(cassandra_df, ['url', 'title', 'body', 'base.sha', 'merge_commit_sha'])
+    # cassandra_pull_request = "../resources/pull_request_projects/cassandra_pulls.pkl"
+    # cassandra_df = pd.read_pickle(cassandra_pull_request)
+    # cassandra_df = github_api.remove_invalid_rows(cassandra_df, ['url', 'title', 'body', 'base.sha', 'merge_commit_sha'])
     # try catch for save pull request if error sent line noti
     try:
         # s.save_testing_pulls(flink_df, 'https://api.github.com/repos/apache/flink/pulls/14294')
-        s.save_testing_pulls(cassandra_df)
+        s.save_testing_pulls(flink_df)
     except Exception as e:
         message = f"Error save pull request flink: {e}"
         payload = {'message': message}
