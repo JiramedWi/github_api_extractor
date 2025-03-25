@@ -32,16 +32,11 @@ WORKDIR /app
 COPY . .
 #RUN conda env create -f ERAWAN_env.yml -n ERAWAN_env -y
 RUN conda env create -f ERAWAN_env.yml
-RUN source ~/.bashrc && source activate base && conda activate ERAWAN_env && python -m spacy download en_core_web_sm
-RUN conda run -n ERAWAN_env && pip install spacy pandas gitpython scikit-learn scipy seaborn beautifulsoup4 imbalanced-learn smote-variants==0.7.3
+RUN source ~/.bashrc && source activate base && conda activate ERAWAN_env && python -m spacy download en_core_web_sm && pip install spacy pandas gitpython scikit-learn scipy seaborn beautifulsoup4 imbalanced-learn smote-variants==0.7.3
+# RUN conda run -n ERAWAN_env && pip install spacy pandas gitpython scikit-learn scipy seaborn beautifulsoup4 imbalanced-learn smote-variants==0.7.3
 VOLUME /app/resources
 
-CMD python ./src/{{script_name}} && \
-     python ./src/{{script_name1}} && \
-     python ./src/{{script_name2}} && \
-    python ./src/{{script_name3}}
-
-
+# CMD python /src/{{script_name}} 
 #RUN conda env create -f ERAWAN_env.yml  && conda activate ERAWAN_env && python -m spacy download en_core_web_sm
 #ENV script_name=java_script_upgrade.py
 #CMD python ./src/collect_dataset/{{script_name}}
