@@ -1,0 +1,7 @@
+services:
+  python:
+    image: xxx
+  volumes:
+    .:/app/resources
+  environemnt:
+    pretrain.py:/app/resources

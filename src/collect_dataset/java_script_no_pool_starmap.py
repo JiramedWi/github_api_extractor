@@ -1,19 +1,17 @@
 import re
-
 import pandas as pd
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
-from multiprocessing import Pool, cpu_count
-from concurrent.futures import ThreadPoolExecutor
 from git import Repo
-
 import os, subprocess, platform
 import logging
 import shutil
 
 # Configure logging
 # Set up a rotating file handler that limits log file size to 10 MB with backup log files
-log_handler = RotatingFileHandler('/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/log/process_log.log', maxBytes=10 * 1024 * 1024, backupCount=5)
+log_handler = RotatingFileHandler(
+    '/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/log/process_log.log',
+    maxBytes=10 * 1024 * 1024, backupCount=5)
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 log_handler.setFormatter(log_formatter)
 
@@ -34,7 +32,7 @@ def check_disk_usage(path, min_free_space_gb):
     logging.info(f"Disk space check passed: {free_gb:.2f} GB free.")
 
 
-# Get  the pull request number from the URL
+# Get the pull request number from the URL
 def get_pr_number(url: str):
     try:
         # Use regular expression to extract the pull request number from the URL
@@ -60,7 +58,6 @@ def initialize_paths():
             paths['tsdetect_path'] = '/path/to/your/tsdetect/TestSmellDetector.jar/on/mac'
             paths['save_result_path'] = '/path/to/your/directory/on/mac'
             project_sha_path = '/path/to/your/directory/on/mac/flink_use_for_run_pre_process.pkl'
-        ## Fix path here
         elif system == 'Linux':
             paths['project_repo_path'] = '/home/pee/repo'
             paths['tsdetect_path'] = '/home/pee/repo/github_api_extractor/resources/tsdetect/TestSmellDetector.jar'
@@ -171,7 +168,7 @@ def run_tsdetect(project_url, pull_url, project_name, count, sha_type, sha, test
 
         pull_number = get_pr_number(pull_url)
         try:
-            result = subprocess.run(['java', '-jar', tsdetect_path, testfile_path, sha_type, sha, pull_number], capture_output=True, text=True, check=True)
+            subprocess.run(['java', '-jar', tsdetect_path, testfile_path, sha_type, sha, pull_number])
             logging.info(f'Ran TestSmellDetector for {sha_type} SHA.')
 
         except Exception as e:
@@ -214,71 +211,46 @@ def process_checkout(count, project_name, project_url, pull_url, sha_opened, sha
         raise
 
 
-def init_pool(shared_df):
-    global project_sha_df
-    project_sha_df = shared_df
+# Sequential processing function to replace the parallel one
+def sequential_process(project_name, project_url, paths):
+    # Get dataframe from paths
+    project_sha_df = paths['project_sha']
 
+    # Create a single clone path
+    clone_path = f"{paths['project_repo_path']}/tmp_flink/clone_repo_{project_name}"
 
-def process_chunk(chunk, chunk_index, paths, project_name, project_url):
-    global project_sha_df
-    print("chunk_index", chunk_index)
-    clone_path = f"{paths['project_repo_path']}/tmp_flink/clone_repo_{chunk_index}_{project_name}"
-    for count in chunk:
+    # Process each row in the dataframe sequentially
+    for count in range(len(project_sha_df)):
         try:
+            logging.info(f'Processing item {count + 1} of {len(project_sha_df)}')
             sha_opened = project_sha_df['open'][count]
             sha_closed = project_sha_df['closed'][count]
             pull_url = project_sha_df['url'][count]
-            # Use the clone_path based on chunk_index to process each SHA
+
+            # Process this SHA pair
             process_checkout(count, project_name, project_url, pull_url, sha_opened, sha_closed, paths, clone_path)
+
+            logging.info(f'Completed processing item {count + 1}')
         except Exception as e:
-            logging.error(f'Error in process_chunk for count {count}: {e}', exc_info=True)
+            logging.error(f'Error processing item {count}: {e}', exc_info=True)
+            # Continue to the next item instead of stopping the entire process
+            continue
 
-
-# Perform the auto-checkout for all SHAs in the project
-def auto_checkout(project_name, project_url, paths):
-    num_chunks = 6  # We want exactly 6 chunks
-    total_items = len(paths['project_sha'])
-    chunk_size = total_items // num_chunks
-
-    # Divide the indices into 6 chunks, putting any excess in the last chunk
-    chunks = [list(range(i * chunk_size, (i + 1) * chunk_size)) for i in range(num_chunks - 1)]
-    chunks.append(list(range((num_chunks - 1) * chunk_size, total_items)))  # Last chunk gets the remainder
-
-    with Pool(num_chunks, initializer=init_pool, initargs=(paths['project_sha'],)) as pool:
-        pool.starmap(process_chunk, [(chunk, chunk_index, paths, project_name, project_url) for chunk_index, chunk in
-                                     enumerate(chunks)])
-
-    logging.info('Completed auto-checkout process.')
-
-
-# # Process the checkout for each batch of data assigned to a worker
-# def process_checkout_batch(worker_id, project_name, project_url, urls, sha_opened, sha_closed, paths):
-#
-#     try:
-#         for count, url in enumerate(urls):
-#             # Process individual SHAs within the chunk assigned to this worker
-#             process_checkout(count, project_name, project_url, url, sha_opened.iloc[count], sha_closed.iloc[count],
-#                              paths)
-#
-#         logging.info(f'Worker {worker_id} completed processing of its dataset chunk.')
-#
-#     except Exception as e:
-#         logging.error(f'Error during batch processing by worker {worker_id}: {e}', exc_info=True)
-#         raise
+    logging.info('Completed sequential processing of all items.')
 
 
 # Main execution
 if __name__ == "__main__":
-    paths = initialize_paths()
-    auto_checkout('flink', 'https://github.com/apache/flink.git', paths)
-    # auto_checkout('hive', 'https://github.com/apache/hive.git', paths)
-    # try:
-    #     paths = initialize_paths()
-    #     auto_checkout('hive', 'https://github.com/apache/hive.git', paths)
-    # except Exception as e:
-    #     logging.error(f'Fatal error in main execution: {e}', exc_info=True)
-    # try:
-    #     paths = initialize_paths()
-    #     auto_checkout('flink', 'https://github.com/apache/flink.git', paths)
-    # except Exception as e:
-    #     logging.error(f'Fatal error in main execution: {e}', exc_info=True)
+    try:
+        # Check disk space before starting
+        check_disk_usage('/home/pee/repo', 10)  # Ensure at least 10GB free
+
+        # Initialize paths
+        paths = initialize_paths()
+
+        # Run the sequential process
+        sequential_process('flink', 'https://github.com/apache/flink.git', paths)
+
+        logging.info("Processing completed successfully")
+    except Exception as e:
+        logging.error(f'Fatal error in main execution: {e}', exc_info=True)

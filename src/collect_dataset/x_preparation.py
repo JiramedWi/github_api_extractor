@@ -20,6 +20,7 @@ from textblob import TextBlob
 import spacy
 import os
 
+
 def get_default_paths():
     system_name = platform.system()
     if system_name == "Linux":
@@ -44,52 +45,36 @@ def clean_md_to_text(text: str):
     text = soup.get_text()
     return text
 
+
 ## Using to clean template sentense in markdown format
 def delete_sentences(text, sentences):
-    # Remove all occurrences of the sentences from the text
     for sentence in sentences:
-        text = re.sub(sentence, "", text)
+        # Escape special characters and allow flexible matching (case insensitive, optional whitespace)
+        pattern = re.compile(rf"(?i)\b{re.escape(sentence)}\b", re.MULTILINE)
+        text = pattern.sub("", text)
     return text
 
+
 ## Using to clean template sentense in markdown format
-def get_and_clean_data(data, sentenses, save_path):
-    # Drop rows with missing values in 'title_n_body'
+def get_and_clean_data(data, sentences, save_path):
     description = data['title_n_body'].dropna()
 
-    # Pre-compile regex patterns for efficiency
-    html_comment_regex = re.compile(r"(<!--.*?-->)", flags=re.DOTALL)
-    link_regex = re.compile(r"(https?://\S+)")
-    ellipsis_regex = re.compile(r"(.*?)… …(.*)")
-    single_ellipsis_regex = re.compile(r"(…)")
-
-    # Define transformations
     def clean_text(s):
-        # Convert Markdown to plain text
-        s = clean_md_to_text(str(s))
-        # Delete long sentences
-        s = delete_sentences(s, sentenses)
-        # Remove HTML-style comments
-        s = html_comment_regex.sub(" ", s)
-        # Convert to lowercase
+        s = delete_sentences(s, sentences)  # Remove templates first
+        s = clean_md_to_text(s)  # Convert Markdown after templates are gone
+        s = re.sub(r"(<!--.*?-->)", " ", s, flags=re.DOTALL)  # Remove HTML comments
+        s = re.sub(r"(https?://\S+)", " ", s)  # Remove URLs
+        s = re.sub(r"(.*?)… …(.*)", r"\1\2", s)  # Remove ellipses
+        s = re.sub(r"(…)", " ", s)
         s = s.lower()
-        # Merge title and body content, remove ellipses
-        s = ellipsis_regex.sub(r"\1\2", s)
-        s = single_ellipsis_regex.sub(" ", s)
-        # Remove links
-        s = link_regex.sub(" ", s)
-        # Remove punctuation
         s = s.translate(str.maketrans('', '', string.punctuation + u'\xa0'))
-        # Remove excess whitespace
-        s = s.translate(str.maketrans(string.whitespace, ' ' * len(string.whitespace), ''))
         s = ' '.join(w.strip() for w in s.split())
         return s
 
-    # Apply cleaning transformations
     cleaned_description = description.apply(clean_text)
     cleaned_description = pd.Series(cleaned_description, name='cleaned_title_n_body')
     cleaned_description = pd.concat([data, cleaned_description], axis=1)
 
-    # Save cleaned data to a pickle file
     output_path = Path(save_path + "/flink_clean_description.pkl")
     cleaned_description['pull_number'] = cleaned_description['url'].apply(lambda url: url.rstrip('/').split('/')[-1])
     cleaned_description.to_pickle(output_path)
@@ -110,10 +95,13 @@ if __name__ == "__main__":
 
     # Define sentences to remove
     try:
-        sentences = ["What changes were proposed in this pull request\?",
-                     "Why are the changes needed\?",
-                     "Does this PR introduce any user-facing change\?",
-                     "How was this patch tested\?"]
+        sentences = [
+            r"What changes were proposed in this pull request[\?\:]?",
+            r"Why are the changes needed[\?\:]?",
+            r"Does this PR introduce any user-facing change[\?\:]?",
+            r"How was this patch tested[\?\:]?"
+        ]
+
     except Exception as e:
         print(f"Error defining sentences: {e}")
         raise

@@ -48,7 +48,9 @@ def process_files_and_update_dataframe(directory_path, old_df):
 
         if match:
             version, project, number, sha = match.groups()
-
+            # check sha = '82b628d4730eef32b2f7a022e3b73cb18f950e6e'
+            if sha == '82b628d4730eef32b2f7a022e3b73cb18f950e6e':
+                print(f"SHA: {sha}, filename: {filename}")
             # Store the file path with its SHA and version
             if sha not in sha_to_file:
                 sha_to_file[sha] = {}
@@ -93,6 +95,7 @@ updated_df = process_files_and_update_dataframe('/home/pee/repo/tmp_flink/csv', 
 df_run_tsdetect = updated_df[updated_df['is_has_test_smell'] == True].copy()
 df_no_run_tsdetect_yet = updated_df[updated_df['is_has_test_smell'] == False].copy()
 
+df_no_run_tsdetect_yet_from_dto_vm = pd.read_pickle(Path('/home/pee/repo/github_api_extractor/resources/pull_request_projects/flink_no_run_tsdetect_yet.pkl').resolve())
 # pickle the dataframe
-df_no_run_tsdetect_yet.to_pickle(Path('/home/pee/repo/github_api_extractor/resources/pull_request_projects/flink_no_run_tsdetect_yet.pkl').resolve())
+# df_no_run_tsdetect_yet.to_pickle(Path('/home/pee/repo/github_api_extractor/resources/pull_request_projects/flink_no_run_tsdetect_yet.pkl').resolve())
 
