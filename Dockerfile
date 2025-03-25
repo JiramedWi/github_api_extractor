@@ -16,6 +16,7 @@ RUN curl -LO "http://repo.continuum.io/miniconda/Miniconda3-${CONDA_VER}-Linux-$
 RUN bash Miniconda3-${CONDA_VER}-Linux-${OS_TYPE}.sh -p /miniconda -b
 RUN rm Miniconda3-${CONDA_VER}-Linux-${OS_TYPE}.sh
 ENV PATH=/miniconda/bin:${PATH}
+ENV script_name=java_script_upgrade.py
 RUN conda update -y conda
 SHELL ["/bin/bash", "-c"]
 RUN conda init bash
@@ -35,6 +36,10 @@ RUN source ~/.bashrc && source activate base && conda activate ERAWAN_env && pyt
 RUN conda run -n ERAWAN_env && pip install spacy pandas gitpython scikit-learn scipy seaborn beautifulsoup4 imbalanced-learn smote-variants==0.7.3
 VOLUME /app/resources
 
+CMD python ./src/{{script_name}} && \
+     python ./src/{{script_name1}} && \
+     python ./src/{{script_name2}} && \
+    python ./src/{{script_name3}}
 
 
 #RUN conda env create -f ERAWAN_env.yml  && conda activate ERAWAN_env && python -m spacy download en_core_web_sm

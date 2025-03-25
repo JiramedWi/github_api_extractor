@@ -1,7 +1,10 @@
 services:
   python:
-    image: xxx
-  volumes:
-    .:/app/resources
-  environemnt:
-    pretrain.py:/app/resources
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./test_resources:/app/resources
+
+    environment:
+      script_name: test_thing.py
