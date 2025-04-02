@@ -5,6 +5,6 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./test_resources:/app/resources
-
-    # environment:
-    #   script_name: test_thing.py
+    environment:
+      - INPUT_DIR=/app/resources
+      - OUTPUT_DIR=/app/resources
