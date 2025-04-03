@@ -4,7 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ./test_resources:/app/resources
+      - my_data:/app/resources
     environment:
-      - INPUT_DIR=/app/resources
-      - OUTPUT_DIR=/app/resources
+      - INPUT_DIR=/app/resources/tsdetect/test_smell_flink/
+      - OUTPUT_DIR=/app/resources/tsdetect/test_smell_flink/
+volumes:
+  my_data:

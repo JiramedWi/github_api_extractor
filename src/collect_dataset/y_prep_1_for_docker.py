@@ -29,9 +29,14 @@ def get_paths():
 def process_and_pickle_files(input_directory, output_directory):
     open_dataframes = []
     closed_dataframes = []
-    # Check amount of file .csv in directory
+    input_directory = Path(input_directory) / "raw_data"
     input_directory_files = os.listdir(input_directory)
-    print(f"Amount of file in directory: {len(input_directory_files)}")
+
+    # Count CSV files
+    csv_files = [file for file in input_directory_files if file.endswith('.csv')]
+    csv_count = len(csv_files)
+
+    print(f"Number of CSV files: {csv_count}")
 
     # Process each file in the input directory
     for filename in os.listdir(input_directory):

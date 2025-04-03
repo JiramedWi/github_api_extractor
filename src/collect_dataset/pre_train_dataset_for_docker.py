@@ -8,6 +8,7 @@ import spacy
 import joblib
 import inspect
 import platform
+import smote_variants as sv
 from pathlib import Path
 
 from nltk.corpus import stopwords
@@ -25,6 +26,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from scipy.sparse import csr_matrix
 from textblob import TextBlob
+
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
 
 
@@ -176,6 +178,75 @@ def set_smote(x_y_fit_blind_transform):
     joblib.dump(x_y_fit_blind_transform, output_file)
     return x_y_fit_blind_transform
 
+def set_smote_variants(x_y_fit_blind_transform, smote_type):   
+    # Get the input and output directories
+    _, output_dir = get_paths()
+    
+    # Dictionary of available SMOTE variants
+    smote_variants = {
+        'prowsyn': sv.ProWSyn(random_state=42),
+        'polynom': sv.polynom_fit_SMOTE(random_state=42),
+        'kmeans': sv.kmeans_SMOTE(random_state=42),
+        'svm': sv.SVMSMOTE(random_state=42),
+        'borderline': sv.Borderline_SMOTE1(random_state=42),
+        'adasyn': sv.ADASYN(random_state=42)
+    }
+    
+    # Check if requested SMOTE type exists
+    if smote_type not in smote_variants:
+        available_types = list(smote_variants.keys())
+        raise ValueError(f"SMOTE type '{smote_type}' not supported. Available types: {available_types}")
+    
+    # Select the specified SMOTE variant
+    selected_smote = smote_variants[smote_type]
+    
+    count = 0
+    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+        # count loop
+        count += 1
+        
+        print(f"Applying {smote_type} SMOTE variant to data {count}...")
+        
+        # Apply the selected SMOTE variant
+        x_smote, y_smote = selected_smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
+                                                      x_y_fit_blind_transform_dict['y_fit'])
+        
+        # Check value is smoted or not
+        if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
+                x_y_fit_blind_transform_dict['y_fit'].shape[0]:
+            print("set Balanced: x value old = " + str(
+                x_y_fit_blind_transform_dict['x_fit'].shape[0]) + ", x value new = "
+                  + str(x_smote.shape[0]) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape[0]) +
+                  ", y value new = " + str(y_smote.shape[0]))
+            print("set Balanced: x value old = " + str(
+                x_y_fit_blind_transform_dict['x_fit'].shape) + ", x value new = "
+                  + str(x_smote.shape) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape) +
+                  ", y value new = " + str(y_smote.shape))
+            pass
+        else:
+            raise Exception(f"SMOTE variant {smote_type} failed to apply")
+            
+        # Check ratio of Y_smote
+        class_distribution_train_smote = pd.Series(y_smote).value_counts()
+        print(f"count_y_smote {class_distribution_train_smote}")
+        ratio_class_1_train_smote = class_distribution_train_smote[1] / len(y_smote)
+        ratio_class_0_train_smote = class_distribution_train_smote[0] / len(y_smote)
+        print(f"\nRatio of class '1' in the training smote set: {ratio_class_1_train_smote:.2%}")
+        print(f"\nRatio of class '0' in the training smote set: {ratio_class_0_train_smote:.2%}")
+        
+        # Update dictionary with SMOTE results
+        x_y_fit_blind_transform_dict['x_fit'] = x_smote
+        x_y_fit_blind_transform_dict['y_fit'] = y_smote
+        x_y_fit_blind_transform_dict['smote_variant'] = smote_type
+        x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
+        x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
+        print(f"Total process: {count}")
+    
+    # Save to a different output file containing the SMOTE type in the filename
+    output_file = output_dir / f'x_y_fit_blind_SMOTE_{smote_type}_transform_optuna.pkl'
+    joblib.dump(x_y_fit_blind_transform, output_file)
+    return x_y_fit_blind_transform
+
 
 def normalize_x(x_y_fit_blind_transform, normalize_method):
     # Get the input and output directories
@@ -303,27 +374,25 @@ def main():
     n_grams_ranges = [(1, 1), (1, 2)]
 
     # To run datafit
+    print("Start to data fit transform soon")
     run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
     indexer = run.indexing_x()
     indexer = run.data_fit_transform(indexer)
+    print("Done with data fit transform")
 
     # To run smote
+    print("Start to set smote soon")
     time.sleep(10)
-    input_dir, _ = get_paths()  # Get paths again in case they changed
+    # To run with a specific SMOTE variant
+    input_dir, _ = get_paths()
     smote_path = input_dir / 'x_y_fit_blind_transform_optuna.pkl'
-    smote = joblib.load(smote_path)
-    smote = set_smote(smote)
-
-    # To run normalize
-    time.sleep(10)
-    input_dir, _ = get_paths()  # Get paths again in case they changed
-    normalize_path = input_dir / 'x_y_fit_blind_SMOTE_transform_optuna.pkl'
-    normalize = joblib.load(normalize_path)
-    mix_max = normalize_x(normalize, 'min_max')
-    log = normalize_x(normalize, 'log')
-
-    print("Done")
+    smote_data = joblib.load(smote_path)
+    # Apply different SMOTE variants
+    prowsyn_result = set_smote_variants(smote_data.copy(), 'prowsyn')
+    polynom_result = set_smote_variants(smote_data.copy(), 'polynom')
+    print("Done with SMOTE variants")
 
 
 if __name__ == '__main__':
     main()
+    #TODO: Check the dataset compare in the calculation exel

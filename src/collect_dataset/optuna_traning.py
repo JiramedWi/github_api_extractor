@@ -31,6 +31,7 @@ def objective(trial, x, y):
 
 
 # start optuna
+#TODO: Do early stopping for optuna
 def find_best_parameter(datasets: list, dataset_name: str):
     # Set up time and line notification
     for dataset in datasets:
@@ -58,6 +59,7 @@ def find_best_parameter(datasets: list, dataset_name: str):
 
 # main execution
 if __name__ == '__main__':
+    #TODO:Check the dataset to see if it is correct
     # Load the data
     datasets = joblib.load('/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/x_y_fit_blind_SMOTE_transform_optuna.pkl')
     # Find best parameter

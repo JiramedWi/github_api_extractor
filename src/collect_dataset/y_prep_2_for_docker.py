@@ -15,7 +15,7 @@ def get_paths():
         print(f"Detected OS: {system_name}")
 
         if system_name == "Linux":
-            input_directory = "/app/resources/tsdetect/test_smell_flink"
+            input_directory = "/app/resources/tsdetect/test_smell_flink/"
             output_directory = "/app/resources/tsdetect/test_smell_flink"
         elif system_name == "Darwin":  # macOS
             input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
@@ -44,6 +44,7 @@ def aggregate_test_smells(data, categories):
 if __name__ == "__main__":
     # Load your dataset
     input_dir, output_dir = get_paths()
+    input_dir = Path(input_dir)
     input_file_open_version = Path(input_dir) / "y_open_versions.pkl"
     input_file_closed_version = Path(input_dir) / "y_closed_versions.pkl"
     output_file_open_version = Path(output_dir) / "y_open_versions_aggregated.pkl"

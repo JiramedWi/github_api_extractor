@@ -4,7 +4,7 @@ ARG OS_TYPE=x86_64
 ARG PY_VER=3.10
 ARG PANDAS_VER=2.0.3
 
-FROM --platform=amd64 ubuntu:${UBUNTU_VER}
+FROM ubuntu:${UBUNTU_VER}
 # System packages
 RUN apt-get update && apt-get install -yq curl wget jq vim
 
@@ -46,5 +46,6 @@ VOLUME /app/resources
 #ENV script_name=java_script_upgrade.py
 RUN chmod +x ./src/collect_dataset/script_after_build.sh
 #CMD ["/bin/bash/", "-c","./src/collect_dataset/script_after_build.sh","${script_name}","${script_name_2}","${script_name_3}","${script_name_4}","${script_name_5}"]
+RUN sed -i 's/\r$//' ./src/collect_dataset/script_after_build.sh
 CMD ./src/collect_dataset/script_after_build.sh ${script_name} ${script_name_2} ${script_name_3} ${script_name_4} ${script_name_5}
 
