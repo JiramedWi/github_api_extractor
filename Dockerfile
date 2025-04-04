@@ -4,7 +4,8 @@ ARG OS_TYPE=x86_64
 ARG PY_VER=3.10
 ARG PANDAS_VER=2.0.3
 
-FROM ubuntu:${UBUNTU_VER}
+# FROM ubuntu:${UBUNTU_VER}
+FROM --platform=amd64 ubuntu:${UBUNTU_VER}
 # System packages
 RUN apt-get update && apt-get install -yq curl wget jq vim
 
@@ -21,6 +22,8 @@ ENV script_name_2=y_prep_1_for_docker.py
 ENV script_name_3=y_prep_2_for_docker.py
 ENV script_name_4=y_prep_3_for_docker.py
 ENV script_name_5=x_y_last_step_for_docker.py
+ENV python_file_optuna_1=pre_train_dataset_for_docker.py
+ENV python_file_optuna_2=optuna_traning_for_docker.py
 RUN conda update -y conda
 SHELL ["/bin/bash", "-c"]
 RUN conda init bash
@@ -46,6 +49,8 @@ VOLUME /app/resources
 #ENV script_name=java_script_upgrade.py
 RUN chmod +x ./src/collect_dataset/script_after_build.sh
 #CMD ["/bin/bash/", "-c","./src/collect_dataset/script_after_build.sh","${script_name}","${script_name_2}","${script_name_3}","${script_name_4}","${script_name_5}"]
-RUN sed -i 's/\r$//' ./src/collect_dataset/script_after_build.sh
-CMD ./src/collect_dataset/script_after_build.sh ${script_name} ${script_name_2} ${script_name_3} ${script_name_4} ${script_name_5}
+RUN sed -i 's/\r$//' ./src/collect_dataset/script_pre_processing.sh
+RUN sed -i 's/\r$//' ./src/collect_dataset/script_indexing_smote_optuna.sh
+CMD ./src/collect_dataset/script_pre_processing.sh ${script_name} ${script_name_2} ${script_name_3} ${script_name_4} ${script_name_5}
+CMD ./src/collect_dataset/script_indexing_smote_optuna.sh ${python_file_optuna_1} ${python_file_optuna_2}
 

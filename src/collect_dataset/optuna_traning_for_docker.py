@@ -31,7 +31,6 @@ def get_paths():
 input_path, output_path = get_paths()
 
 # Set up objective for using optuna
-# TODO: Do early stopping for optuna
 def objective(trial, x, y):
     n_estimators = trial.suggest_int('n_estimators', 500, 5000)
     learning_rate = trial.suggest_float('learning_rate', 0.01, 1)

@@ -9,8 +9,8 @@ import joblib
 import inspect
 import platform
 import smote_variants as sv
-from pathlib import Path
 
+from pathlib import Path
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet
 from nltk.stem import PorterStemmer
@@ -25,13 +25,11 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from scipy.sparse import csr_matrix
-from textblob import TextBlob
-
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.decomposition import LatentDirichletAllocation, TruncatedSVD
 
 
 def get_paths():
-    """Get input and output directories from environment variables or default to system-specific paths."""
     input_directory = os.getenv("INPUT_DIR")
     output_directory = os.getenv("OUTPUT_DIR")
 
@@ -248,6 +246,7 @@ def set_smote_variants(x_y_fit_blind_transform, smote_type):
     return x_y_fit_blind_transform
 
 
+
 def normalize_x(x_y_fit_blind_transform, normalize_method):
     # Get the input and output directories
     _, output_dir = get_paths()
@@ -278,8 +277,7 @@ class MachineLearningScript:
         self.term_represented = term_represented
         self.pre_process_steps = pre_process_steps
         self.n_gram_range = n_gram_range
-        self.scaler = MinMaxScaler()
-        self.smote = SMOTE()
+        self.x_y_fit_blind_transform = None
 
     def indexing_x(self):
         temp_x = []
@@ -355,11 +353,98 @@ class MachineLearningScript:
                             "y_blind_test_ratio_0_1": f"{class_distribution_test[0]}:{class_distribution_test[1]}"
                         }
                         temp_x.append(data_combination)
-        
-        output_file = self.output_dir / 'x_y_fit_blind_transform_optuna.pkl'
+        self.x_y_fit_blind_transform = temp_x
+        output_file = self.output_dir / 'x_y_fit_optuna.pkl'
         joblib.dump(temp_x, output_file)
         return temp_x
+    
+    def set_lda_lsa(self, naming_file):
 
+        # Get the output directory
+        _, output_dir = get_paths()
+        
+        start_time = time.time()
+        start_time_gmt = time.gmtime(start_time)
+        start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
+        start_noti = "start to set lda and lsa at: " + start_time_gmt
+        print(start_noti)
+
+        count = 0
+        x_y_fit_blind_transform = self.x_y_fit_blind_transform
+        
+        for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+            # condition for TF using LDA
+            term_condition = x_y_fit_blind_transform_dict['combination'].split('_')[0]
+            
+            if term_condition == 'CountVectorizer':
+                print(f"Processing with LDA for {term_condition}")
+                # count loop
+                count += 1
+                
+                lda = LatentDirichletAllocation(n_components=500, random_state=42)
+                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].size) + ' this is whole_x_fit')
+                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].shape) + ' this is shape of whole_x_fit')
+                print(str(x_y_fit_blind_transform_dict['x_fit'].size) + ' this is x_fit')
+                print(str(x_y_fit_blind_transform_dict['x_fit'].shape) + ' this is shape of x_fit')
+                print('||||||||||||||||||||||||')
+                
+                lda.fit(x_y_fit_blind_transform_dict['whole_x_fit'])
+                x_lda_fit = lda.transform(x_y_fit_blind_transform_dict['x_fit'])
+                
+                print(str(x_lda_fit.size) + ' this is x_lda_fit')
+                print(str(x_lda_fit.shape) + ' this is shape of x_lda_fit')
+                
+                x_lda_blind_test = lda.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+                print('----------------------')
+                
+                x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
+                x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
+                x_y_fit_blind_transform_dict['term'] = 'TF_LDA'
+                
+                del lda, x_lda_fit, x_lda_blind_test
+                
+            # condition for TFidf using LSA
+            elif term_condition == 'TfidfVectorizer':
+                print(f"Processing with LSA for {term_condition}")
+                # count loop
+                count += 1
+                
+                lsa = TruncatedSVD(n_components=500, random_state=42)
+                lsa.fit(x_y_fit_blind_transform_dict['whole_x_fit'])
+                
+                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].size) + ' this is whole_x_fit')
+                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].shape) + ' this is shape of whole_x_fit')
+                print(str(x_y_fit_blind_transform_dict['x_fit'].size) + ' this is x_fit')
+                print(str(x_y_fit_blind_transform_dict['x_fit'].shape) + ' this is shape of x_fit')
+                print('||||||||||||||||||||||||')
+                
+                x_lsa_fit = lsa.transform(x_y_fit_blind_transform_dict['x_fit'])
+                
+                print(str(x_lsa_fit.size) + ' this is x_lsa_fit')
+                print(str(x_lsa_fit.shape) + ' this is shape of x_lsa_fit')
+                
+                x_lsa_blind_test = lsa.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+                print('----------------------')
+                
+                x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
+                x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
+                x_y_fit_blind_transform_dict['term'] = 'TFidf_LSA'
+                
+                del lsa, x_lsa_fit, x_lsa_blind_test
+        
+        print(f"Total process: {count}")
+        
+        # Use output directory from get_paths() for saving the output file
+        output_file = output_dir / f'+{naming_file}_with_LDA_LSA.pkl'
+        joblib.dump(x_y_fit_blind_transform, output_file)
+        
+        end_time = time.time()
+        result_time = end_time - start_time
+        result_time_gmt = time.gmtime(result_time)
+        result_time = time.strftime("%H:%M:%S", result_time_gmt)
+        totol_noti = f"Done!!! total time to do lda and lsa: {result_time}"
+        print(totol_noti)    
+        return x_y_fit_blind_transform
 
 def main():
     # Get the input and output directories
@@ -378,6 +463,7 @@ def main():
     run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
     indexer = run.indexing_x()
     indexer = run.data_fit_transform(indexer)
+    set_topic_model = run.set_lda_lsa('x_y_fit_topic_model_optuna')
     print("Done with data fit transform")
 
     # To run smote

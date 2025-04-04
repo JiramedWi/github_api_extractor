@@ -8,5 +8,6 @@ services:
     environment:
       - INPUT_DIR=/app/resources/tsdetect/test_smell_flink/
       - OUTPUT_DIR=/app/resources/tsdetect/test_smell_flink/
+      - OUTPUT_DIR_OPTUNA=/app/resources/tsdetect/test_smell_flink/optuna_result
 volumes:
   my_data:
