@@ -1,3 +1,4 @@
+import logging
 import os
 import platform
 import joblib
@@ -6,6 +7,7 @@ import optuna
 from pathlib import Path
 from sklearn import model_selection
 from sklearn.ensemble import GradientBoostingClassifier
+
 
 # Function to determine paths dynamically
 def get_paths():
@@ -27,8 +29,28 @@ def get_paths():
 
     return Path(input_directory), Path(output_directory)
 
+
 # Get input and output paths
 input_path, output_path = get_paths()
+
+
+#Early stopping for optuna
+def early_stopping_callback(study, trial, early_stopping_rounds):
+    current_trial = trial.number
+
+    if current_trial < early_stopping_rounds:
+        return
+
+    best_trial_number = study.best_trial.number
+    trials_without_improvement = current_trial - best_trial_number
+
+    if trials_without_improvement >= early_stopping_rounds:
+        logging.info(f"Early stopping triggered after {early_stopping_rounds} trials without improvement")
+        logging.info(f"Best F1: {study.best_value}, found at trial {best_trial_number}")
+        return {"state": optuna.trial.TrialState.PRUNED, "value": study.best_value, "params": study.best_params}
+    else:
+        return {"state": optuna.trial.TrialState.COMPLETE, "value": study.best_value, "params": study.best_params}
+
 
 # Set up objective for using optuna
 # TODO: Do early stopping for optuna
@@ -56,6 +78,7 @@ def objective(trial, x, y):
     score = np.mean(auc_scores)
     return score
 
+
 # Start optuna
 def find_best_parameter(datasets: list, dataset_name: str):
     for dataset in datasets:
@@ -73,14 +96,15 @@ def find_best_parameter(datasets: list, dataset_name: str):
     results_cv_path = output_path / f"optuna_result_{dataset_name}.pkl"
     output_path.mkdir(parents=True, exist_ok=True)  # Ensure directories exist
     joblib.dump(datasets, results_cv_path)
-    
+
     return datasets
+
 
 # Main execution
 if __name__ == '__main__':
     # Load the dataset from input directory
     data_file = input_path / "x_y_fit_blind_SMOTE_transform_optuna.pkl"
     datasets = joblib.load(data_file)
-    
+
     # Find best parameter
     find_best_parameter(datasets, 'flink_smote')
