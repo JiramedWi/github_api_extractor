@@ -39,7 +39,7 @@ WORKDIR /app
 COPY ERAWAN_env.yml ERAWAN_env.yml
 #RUN conda env create -f ERAWAN_env.yml -n ERAWAN_env -y
 RUN conda env create -f ERAWAN_env.yml
-RUN source ~/.bashrc && source activate base && conda activate ERAWAN_env && python -m spacy download en_core_web_sm && pip install spacy pandas gitpython scikit-learn scipy seaborn beautifulsoup4 imbalanced-learn smote-variants==0.7.3
+RUN source ~/.bashrc && source activate base && conda activate ERAWAN_env && python -m spacy download en_core_web_sm && pip install optuna==3.6.0 spacy pandas gitpython scikit-learn scipy seaborn beautifulsoup4 imbalanced-learn smote-variants==0.7.3
 # RUN conda run -n ERAWAN_env && pip install spacy pandas gitpython scikit-learn scipy seaborn beautifulsoup4 imbalanced-learn smote-variants==0.7.3
 COPY . .
 VOLUME /app/resources
@@ -49,8 +49,8 @@ VOLUME /app/resources
 #ENV script_name=java_script_upgrade.py
 RUN chmod +x ./src/collect_dataset/script_after_build.sh
 #CMD ["/bin/bash/", "-c","./src/collect_dataset/script_after_build.sh","${script_name}","${script_name_2}","${script_name_3}","${script_name_4}","${script_name_5}"]
-RUN sed -i 's/\r$//' ./src/collect_dataset/script_pre_processing.sh
+# RUN sed -i 's/\r$//' ./src/collect_dataset/script_pre_processing.sh
 RUN sed -i 's/\r$//' ./src/collect_dataset/script_indexing_smote_optuna.sh
-CMD ./src/collect_dataset/script_pre_processing.sh ${script_name} ${script_name_2} ${script_name_3} ${script_name_4} ${script_name_5}
+# CMD ./src/collect_dataset/script_pre_processing.sh ${script_name} ${script_name_2} ${script_name_3} ${script_name_4} ${script_name_5}
 CMD ./src/collect_dataset/script_indexing_smote_optuna.sh ${python_file_optuna_1} ${python_file_optuna_2}
 
