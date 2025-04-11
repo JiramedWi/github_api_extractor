@@ -6,10 +6,18 @@ import numpy as np
 import optuna
 from pathlib import Path
 from sklearn import model_selection
-from sklearn.ensemble import GradientBoostingClassifier
+from lightgbm import LGBMClassifier
 from optuna.exceptions import TrialPruned
 
-
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("optuna_tuning.log"),
+        logging.StreamHandler()
+    ]
+)
 
 # Function to determine paths dynamically
 def get_paths():
@@ -18,6 +26,7 @@ def get_paths():
 
     if not input_directory or not output_directory:
         system_name = platform.system()
+        logging.info(f"Detected OS: {system_name}")
 
         if system_name == "Linux":
             input_directory = "/app/resources/tsdetect/test_smell_flink"
@@ -33,16 +42,6 @@ def get_paths():
 
 # Get input and output paths
 input_path, output_path = get_paths()
-
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(asctime)s] %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(output_path / "optuna_tuning.log"),
-        logging.StreamHandler()
-    ]
-)
 
 
 # Early stopping callback
@@ -64,30 +63,27 @@ def early_stopping_callback(early_stopping_rounds):
 
 # Objective function with optional pruning
 def objective(trial, x, y):
-    n_estimators = trial.suggest_int('n_estimators', 500, 5000)
-    learning_rate = trial.suggest_float('learning_rate', 0.01, 1)
-    max_depth = trial.suggest_int('max_depth', 5, 20)
-    min_samples_split = trial.suggest_int('min_samples_split', 128, 512)
-    min_samples_leaf = trial.suggest_int('min_samples_leaf', 64, 256)
-    subsample = trial.suggest_float('subsample', 0.1, 1.0)
+    # Suggest hyperparameters for LightGBM
+    params = {
+        "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
+        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
+        "max_depth": trial.suggest_int("max_depth", 3, 15),
+        "num_leaves": trial.suggest_int("num_leaves", 20, 200),
+        "min_child_samples": trial.suggest_int("min_child_samples", 10, 100),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+        "random_state": 42,
+        "n_jobs": 8
+    }
 
-    gbm = GradientBoostingClassifier(
-        n_estimators=n_estimators,
-        learning_rate=learning_rate,
-        max_depth=max_depth,
-        min_samples_split=min_samples_split,
-        min_samples_leaf=min_samples_leaf,
-        subsample=subsample,
-        random_state=42
-    )
+    clf = LGBMClassifier(**params)
 
-    result = model_selection.cross_validate(gbm, x, y, cv=5, n_jobs=3, scoring='roc_auc')
+    result = model_selection.cross_validate(clf, x, y, cv=5, n_jobs=3, scoring='roc_auc')
     auc_scores = result['test_score']
     score = np.mean(auc_scores)
 
     logging.info(f"Trial {trial.number}: ROC AUC = {score:.4f} | Params = {trial.params}")
 
-    # Optional pruning
     if score < 0.55:
         raise TrialPruned()
 
@@ -100,7 +96,7 @@ def find_best_parameter(datasets: list, dataset_name: str):
         x_fit = dataset['x_fit']
         y_fit = dataset['y_fit']
 
-        logging.info(f"\n🚀 Starting Optuna tuning for dataset: {dataset_name} at index {dataset.index}")
+        logging.info(f"\n🚀 Starting Optuna tuning for dataset: {dataset_name}")
         study = optuna.create_study(direction='maximize')
         study.optimize(
             lambda trial: objective(trial, x_fit, y_fit),
@@ -117,7 +113,7 @@ def find_best_parameter(datasets: list, dataset_name: str):
 
     # Save results in the output directory
     results_cv_path = output_path / f"optuna_result_{dataset_name}.pkl"
-    output_path.mkdir(parents=True, exist_ok=True)  # Ensure directories exist
+    output_path.mkdir(parents=True, exist_ok=True)
     joblib.dump(datasets, results_cv_path)
 
     logging.info(f"📦 Saved Optuna results to: {results_cv_path}")
@@ -126,10 +122,8 @@ def find_best_parameter(datasets: list, dataset_name: str):
 
 # Main execution
 if __name__ == '__main__':
-    # Load the dataset from input directory
     data_file = input_path / "x_y_fit_blind_SMOTE_transform_optuna.pkl"
     logging.info(f"📂 Loading dataset from: {data_file}")
     datasets = joblib.load(data_file)
 
-    # Find best parameter
     find_best_parameter(datasets, 'flink_smote')

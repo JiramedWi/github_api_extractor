@@ -1,36 +1,29 @@
+print("Start to import libraries")
 import time
-import nltk
 import os
 import numpy as np
 import pandas as pd
-import requests
-import spacy
 import joblib
-import inspect
 import platform
-import smote_variants as sv
+import spacy
 
 from pathlib import Path
-from nltk.corpus import stopwords
-from nltk.corpus import wordnet
-from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords, wordnet
+from nltk.stem import PorterStemmer, WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from sklearn import model_selection
-from scipy.spatial.distance import cosine
-from sklearn.metrics.pairwise import cosine_similarity
-from bs4 import BeautifulSoup
+from nltk import pos_tag
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from imblearn.over_sampling import SMOTE
-from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from scipy.sparse import csr_matrix
-from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
 from sklearn.decomposition import LatentDirichletAllocation, TruncatedSVD
+from imblearn.over_sampling import SMOTE
 from textblob import TextBlob
-
+import smote_variants as sv
+from scipy.sparse import csr_matrix
+print("Import libraries done")
 
 def get_paths():
+    print("Start to get paths")
     input_directory = os.getenv("INPUT_DIR")
     output_directory = os.getenv("OUTPUT_DIR")
 
@@ -82,7 +75,7 @@ def pre_process_spacy(s):
 def pre_process_textblob(s):
     blob = TextBlob(s)
     # Remove stopwords
-    s = [word for word in blob.words if word not in nltk.corpus.stopwords.words('english')]
+    s = [word for word in blob.words if word not in stopwords.words('english')]
     s = " ".join(s)
     return s
 
@@ -100,10 +93,10 @@ def pre_process_porterstemmer(s):
 
 def pre_process_lemmatizer(s):
     s = word_tokenize(s)
-    lemmatizer = nltk.stem.WordNetLemmatizer()
+    lemmatizer = WordNetLemmatizer()
     stopwords_set = set(stopwords.words('english'))
     stop_dict = {s: 1 for s in stopwords_set}
-    tags = nltk.pos_tag(s)
+    tags = pos_tag(s)
     wordnet_tagged = list(map(lambda x: (x[0], pos_tagger(x[1])), tags))
     s = [lemmatizer.lemmatize(word, tag) if tag == 'n' or tag == 'v' else None for word, tag in wordnet_tagged]
     s = list(filter(None, s))
@@ -178,7 +171,7 @@ def set_smote(x_y_fit_blind_transform):
     return x_y_fit_blind_transform
 
 
-def set_smote_variants(x_y_fit_blind_transform, smote_type):
+def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
     # Get the input and output directories
     _, output_dir = get_paths()
 
@@ -186,10 +179,6 @@ def set_smote_variants(x_y_fit_blind_transform, smote_type):
     smote_variants = {
         'prowsyn': sv.ProWSyn(random_state=42),
         'polynom': sv.polynom_fit_SMOTE(random_state=42),
-        'kmeans': sv.kmeans_SMOTE(random_state=42),
-        'svm': sv.SVMSMOTE(random_state=42),
-        'borderline': sv.Borderline_SMOTE1(random_state=42),
-        'adasyn': sv.ADASYN(random_state=42)
     }
 
     # Check if requested SMOTE type exists
@@ -243,7 +232,7 @@ def set_smote_variants(x_y_fit_blind_transform, smote_type):
         print(f"Total process: {count}")
 
     # Save to a different output file containing the SMOTE type in the filename
-    output_file = output_dir / f'x_y_fit_blind_SMOTE_{smote_type}_transform_optuna.pkl'
+    output_file = output_dir / f'x_y_SMOTE_{naming_file}_{smote_type}_transform.pkl'
     joblib.dump(x_y_fit_blind_transform, output_file)
     return x_y_fit_blind_transform
 
@@ -360,43 +349,30 @@ class MachineLearningScript:
         return temp_x
 
     def set_lda_lsa(self, naming_file):
-
-        # Get the output directory
         _, output_dir = get_paths()
 
         start_time = time.time()
-        start_time_gmt = time.gmtime(start_time)
-        start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", start_time_gmt)
-        start_noti = "start to set lda and lsa at: " + start_time_gmt
-        print(start_noti)
+        start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(start_time))
+        print("Start to set LDA and LSA at:", start_time_gmt)
 
         count = 0
         x_y_fit_blind_transform = self.x_y_fit_blind_transform
 
         for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
-            # condition for TF using LDA
             term_condition = x_y_fit_blind_transform_dict['combination'].split('_')[0]
 
+            # ----------- LDA on TF ------------
             if term_condition == 'CountVectorizer':
-                print(f"Processing with LDA for {term_condition}")
-                # count loop
+                print(f"Processing LDA for {term_condition}")
                 count += 1
 
                 lda = LatentDirichletAllocation(n_components=500, random_state=42)
-                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].size) + ' this is whole_x_fit')
-                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].shape) + ' this is shape of whole_x_fit')
-                print(str(x_y_fit_blind_transform_dict['x_fit'].size) + ' this is x_fit')
-                print(str(x_y_fit_blind_transform_dict['x_fit'].shape) + ' this is shape of x_fit')
-                print('||||||||||||||||||||||||')
 
-                lda.fit(x_y_fit_blind_transform_dict['whole_x_fit'])
+                # ✅ fit only on x_fit
+                lda.fit(x_y_fit_blind_transform_dict['x_fit'])
+
                 x_lda_fit = lda.transform(x_y_fit_blind_transform_dict['x_fit'])
-
-                print(str(x_lda_fit.size) + ' this is x_lda_fit')
-                print(str(x_lda_fit.shape) + ' this is shape of x_lda_fit')
-
                 x_lda_blind_test = lda.transform(x_y_fit_blind_transform_dict['x_blind_test'])
-                print('----------------------')
 
                 x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
                 x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
@@ -404,28 +380,18 @@ class MachineLearningScript:
 
                 del lda, x_lda_fit, x_lda_blind_test
 
-            # condition for TFidf using LSA
+            # ----------- LSA on TFIDF ------------
             elif term_condition == 'TfidfVectorizer':
-                print(f"Processing with LSA for {term_condition}")
-                # count loop
+                print(f"Processing LSA for {term_condition}")
                 count += 1
 
                 lsa = TruncatedSVD(n_components=500, random_state=42)
-                lsa.fit(x_y_fit_blind_transform_dict['whole_x_fit'])
 
-                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].size) + ' this is whole_x_fit')
-                print(str(x_y_fit_blind_transform_dict['whole_x_fit'].shape) + ' this is shape of whole_x_fit')
-                print(str(x_y_fit_blind_transform_dict['x_fit'].size) + ' this is x_fit')
-                print(str(x_y_fit_blind_transform_dict['x_fit'].shape) + ' this is shape of x_fit')
-                print('||||||||||||||||||||||||')
+                # ✅ fit only on x_fit
+                lsa.fit(x_y_fit_blind_transform_dict['x_fit'])
 
                 x_lsa_fit = lsa.transform(x_y_fit_blind_transform_dict['x_fit'])
-
-                print(str(x_lsa_fit.size) + ' this is x_lsa_fit')
-                print(str(x_lsa_fit.shape) + ' this is shape of x_lsa_fit')
-
                 x_lsa_blind_test = lsa.transform(x_y_fit_blind_transform_dict['x_blind_test'])
-                print('----------------------')
 
                 x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
                 x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
@@ -433,24 +399,22 @@ class MachineLearningScript:
 
                 del lsa, x_lsa_fit, x_lsa_blind_test
 
-        print(f"Total process: {count}")
+        print(f"Total transformations applied: {count}")
 
-        # Use output directory from get_paths() for saving the output file
-        output_file = output_dir / f'+{naming_file}_with_LDA_LSA.pkl'
+        output_file = output_dir / f'{naming_file}_with_LDA_LSA.pkl'
         joblib.dump(x_y_fit_blind_transform, output_file)
 
-        end_time = time.time()
-        result_time = end_time - start_time
-        result_time_gmt = time.gmtime(result_time)
-        result_time = time.strftime("%H:%M:%S", result_time_gmt)
-        totol_noti = f"Done!!! total time to do lda and lsa: {result_time}"
-        print(totol_noti)
+        total_time = time.time() - start_time
+        formatted_time = time.strftime("%H:%M:%S", time.gmtime(total_time))
+        print(f"Done! Total time for LDA + LSA: {formatted_time}")
+
         return x_y_fit_blind_transform
+
 
 
 def main():
     # Get the input and output directories
-    input_dir, _ = get_paths()
+    input_dir, output_dir = get_paths()
 
     # Define input file paths using the input directory
     x_path = input_dir / 'x_for_pre_training.pkl'
@@ -465,7 +429,7 @@ def main():
     run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
     indexer = run.indexing_x()
     indexer = run.data_fit_transform(indexer)
-    set_topic_model = run.set_lda_lsa('x_y_fit_topic_model_optuna')
+    set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
     print("Done with data fit transform")
 
     # To run smote
@@ -473,14 +437,19 @@ def main():
     time.sleep(10)
     # To run with a specific SMOTE variant
     input_dir, _ = get_paths()
-    smote_path = input_dir / 'x_y_fit_blind_transform_optuna.pkl'
-    smote_data = joblib.load(smote_path)
+    normal_fit = output_dir / 'x_y_fit_optuna.pkl'
+    normal_fit_data = joblib.load(normal_fit)
+    topic_model = output_dir / f'x_y_fit_topic_model_with_LDA_LSA.pkl'
+    topic_model_data = joblib.load(topic_model)
     # Apply different SMOTE variants
-    prowsyn_result = set_smote_variants(smote_data.copy(), 'prowsyn')
-    polynom_result = set_smote_variants(smote_data.copy(), 'polynom')
+    set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'prowsyn')
+    set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'polynom')
+    set_smote_variants(topic_model_data.copy(), 'topic_model', 'prowsyn')
+    set_smote_variants(topic_model_data.copy(), 'topic_model', 'polynom')
     print("Done with SMOTE variants")
 
 
 if __name__ == '__main__':
+    print("Start to run main function")
     main()
     #TODO: Check the dataset compare in the calculation exel
