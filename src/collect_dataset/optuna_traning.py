@@ -1,12 +1,59 @@
+import logging
+import os
+import platform
 import joblib
 import numpy as np
 import optuna
-import requests
+from pathlib import Path
 from sklearn import model_selection
 from sklearn.ensemble import GradientBoostingClassifier
 
 
-# set up objective for using optuna
+# Function to determine paths dynamically
+def get_paths():
+    input_directory = os.getenv("INPUT_DIR")
+    output_directory = os.getenv("OUTPUT_DIR_OPTUNA")
+
+    if not input_directory or not output_directory:
+        system_name = platform.system()
+        print(f"Detected OS: {system_name}")
+
+        if system_name == "Linux":
+            input_directory = "/app/resources/tsdetect/test_smell_flink"
+            output_directory = "/app/resources/tsdetect/test_smell_flink/optuna_result"
+        elif system_name == "Darwin":  # macOS
+            input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
+            output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
+        else:
+            raise EnvironmentError(f"Unsupported operating system: {system_name}")
+
+    return Path(input_directory), Path(output_directory)
+
+
+# Get input and output paths
+input_path, output_path = get_paths()
+
+
+#Early stopping for optuna
+def early_stopping_callback(study, trial, early_stopping_rounds):
+    current_trial = trial.number
+
+    if current_trial < early_stopping_rounds:
+        return
+
+    best_trial_number = study.best_trial.number
+    trials_without_improvement = current_trial - best_trial_number
+
+    if trials_without_improvement >= early_stopping_rounds:
+        logging.info(f"Early stopping triggered after {early_stopping_rounds} trials without improvement")
+        logging.info(f"Best F1: {study.best_value}, found at trial {best_trial_number}")
+        return {"state": optuna.trial.TrialState.PRUNED, "value": study.best_value, "params": study.best_params}
+    else:
+        return {"state": optuna.trial.TrialState.COMPLETE, "value": study.best_value, "params": study.best_params}
+
+
+# Set up objective for using optuna
+# TODO: Do early stopping for optuna
 def objective(trial, x, y):
     n_estimators = trial.suggest_int('n_estimators', 500, 5000)
     learning_rate = trial.suggest_float('learning_rate', 0.01, 1)
@@ -15,13 +62,15 @@ def objective(trial, x, y):
     min_samples_leaf = trial.suggest_int('min_samples_leaf', 64, 256)
     subsample = trial.suggest_float('subsample', 0.1, 1.0)
 
-    gbm = GradientBoostingClassifier(n_estimators=n_estimators,
-                                     learning_rate=learning_rate,
-                                     max_depth=max_depth,
-                                     min_samples_split=min_samples_split,
-                                     min_samples_leaf=min_samples_leaf,
-                                     subsample=subsample,
-                                     random_state=42)
+    gbm = GradientBoostingClassifier(
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        min_samples_leaf=min_samples_leaf,
+        subsample=subsample,
+        random_state=42
+    )
 
     result = model_selection.cross_validate(gbm, x, y, cv=5, n_jobs=3, scoring='roc_auc')
     print(result)
@@ -30,35 +79,32 @@ def objective(trial, x, y):
     return score
 
 
-# start optuna
+# Start optuna
 def find_best_parameter(datasets: list, dataset_name: str):
-    # Set up time and line notification
     for dataset in datasets:
-        term_x_name = dataset['combination']
         x_fit = dataset['x_fit']
         y_fit = dataset['y_fit']
-        y_name = dataset['y_name']
-        # Find best parameter
-        # try:
+
         study = optuna.create_study(direction='maximize')
-        study.optimize(
-            lambda trial: objective(trial, x_fit, y_fit),
-            n_trials=1000,
-            timeout=600,
-        )
+        study.optimize(lambda trial: objective(trial, x_fit, y_fit), n_trials=1000, timeout=600)
+
         trial = study.best_trial
-        result = trial.value
-        best_params = trial.params
-        dataset['best_params'] = best_params
-        dataset['result'] = result
-    # Save the model and results path
-    results_cv_path = f"/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result/cv_score_result_{dataset_name}.pkl"
+        dataset['best_params'] = trial.params
+        dataset['result'] = trial.value
+
+    # Save results in the output directory
+    results_cv_path = output_path / f"optuna_result_{dataset_name}.pkl"
+    output_path.mkdir(parents=True, exist_ok=True)  # Ensure directories exist
     joblib.dump(datasets, results_cv_path)
+
     return datasets
 
-# main execution
+
+# Main execution
 if __name__ == '__main__':
-    # Load the data
-    datasets = joblib.load('/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/x_y_fit_blind_SMOTE_transform_optuna.pkl')
+    # Load the dataset from input directory
+    data_file = input_path / "x_y_fit_blind_SMOTE_transform_optuna.pkl"
+    datasets = joblib.load(data_file)
+
     # Find best parameter
     find_best_parameter(datasets, 'flink_smote')

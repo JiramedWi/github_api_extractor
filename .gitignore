@@ -1,7 +1,7 @@
 *.csv
 *.pkl
 *.txt
-*.png
 .idea
 .DS_Store
 /resources
+/test_resources

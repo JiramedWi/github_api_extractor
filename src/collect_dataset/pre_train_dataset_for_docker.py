@@ -1,35 +1,29 @@
+print("Start to import libraries")
 import time
-import nltk
 import os
 import numpy as np
 import pandas as pd
-import requests
-import spacy
 import joblib
-import inspect
 import platform
-from pathlib import Path
+import spacy
 
-from nltk.corpus import stopwords
-from nltk.corpus import wordnet
-from nltk.stem import PorterStemmer
+from pathlib import Path
+from nltk.corpus import stopwords, wordnet
+from nltk.stem import PorterStemmer, WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from sklearn import model_selection
-from scipy.spatial.distance import cosine
-from sklearn.metrics.pairwise import cosine_similarity
-from bs4 import BeautifulSoup
+from nltk import pos_tag
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from imblearn.over_sampling import SMOTE
-from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from scipy.sparse import csr_matrix
+from sklearn.decomposition import LatentDirichletAllocation, TruncatedSVD
+from imblearn.over_sampling import SMOTE
 from textblob import TextBlob
-from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
-
+import smote_variants as sv
+from scipy.sparse import csr_matrix
+print("Import libraries done")
 
 def get_paths():
-    """Get input and output directories from environment variables or default to system-specific paths."""
+    print("Start to get paths")
     input_directory = os.getenv("INPUT_DIR")
     output_directory = os.getenv("OUTPUT_DIR")
 
@@ -81,7 +75,7 @@ def pre_process_spacy(s):
 def pre_process_textblob(s):
     blob = TextBlob(s)
     # Remove stopwords
-    s = [word for word in blob.words if word not in nltk.corpus.stopwords.words('english')]
+    s = [word for word in blob.words if word not in stopwords.words('english')]
     s = " ".join(s)
     return s
 
@@ -99,10 +93,10 @@ def pre_process_porterstemmer(s):
 
 def pre_process_lemmatizer(s):
     s = word_tokenize(s)
-    lemmatizer = nltk.stem.WordNetLemmatizer()
+    lemmatizer = WordNetLemmatizer()
     stopwords_set = set(stopwords.words('english'))
     stop_dict = {s: 1 for s in stopwords_set}
-    tags = nltk.pos_tag(s)
+    tags = pos_tag(s)
     wordnet_tagged = list(map(lambda x: (x[0], pos_tagger(x[1])), tags))
     s = [lemmatizer.lemmatize(word, tag) if tag == 'n' or tag == 'v' else None for word, tag in wordnet_tagged]
     s = list(filter(None, s))
@@ -136,7 +130,7 @@ def log_transform_tfidf(matrix):
 def set_smote(x_y_fit_blind_transform):
     # Get the input and output directories
     _, output_dir = get_paths()
-    
+
     count = 0
     for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
         # count loop
@@ -171,8 +165,74 @@ def set_smote(x_y_fit_blind_transform):
         x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
         x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
         print(f"Total process: {count}")
-    
+
     output_file = output_dir / 'x_y_fit_blind_SMOTE_transform_optuna.pkl'
+    joblib.dump(x_y_fit_blind_transform, output_file)
+    return x_y_fit_blind_transform
+
+
+def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
+    # Get the input and output directories
+    _, output_dir = get_paths()
+
+    # Dictionary of available SMOTE variants
+    smote_variants = {
+        'prowsyn': sv.ProWSyn(random_state=42),
+        'polynom': sv.polynom_fit_SMOTE(random_state=42),
+    }
+
+    # Check if requested SMOTE type exists
+    if smote_type not in smote_variants:
+        available_types = list(smote_variants.keys())
+        raise ValueError(f"SMOTE type '{smote_type}' not supported. Available types: {available_types}")
+
+    # Select the specified SMOTE variant
+    selected_smote = smote_variants[smote_type]
+
+    count = 0
+    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+        # count loop
+        count += 1
+
+        print(f"Applying {smote_type} SMOTE variant to data {count}...")
+
+        # Apply the selected SMOTE variant
+        x_smote, y_smote = selected_smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
+                                                       x_y_fit_blind_transform_dict['y_fit'])
+
+        # Check value is smoted or not
+        if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
+                x_y_fit_blind_transform_dict['y_fit'].shape[0]:
+            print("set Balanced: x value old = " + str(
+                x_y_fit_blind_transform_dict['x_fit'].shape[0]) + ", x value new = "
+                  + str(x_smote.shape[0]) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape[0]) +
+                  ", y value new = " + str(y_smote.shape[0]))
+            print("set Balanced: x value old = " + str(
+                x_y_fit_blind_transform_dict['x_fit'].shape) + ", x value new = "
+                  + str(x_smote.shape) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape) +
+                  ", y value new = " + str(y_smote.shape))
+            pass
+        else:
+            raise Exception(f"SMOTE variant {smote_type} failed to apply")
+
+        # Check ratio of Y_smote
+        class_distribution_train_smote = pd.Series(y_smote).value_counts()
+        print(f"count_y_smote {class_distribution_train_smote}")
+        ratio_class_1_train_smote = class_distribution_train_smote[1] / len(y_smote)
+        ratio_class_0_train_smote = class_distribution_train_smote[0] / len(y_smote)
+        print(f"\nRatio of class '1' in the training smote set: {ratio_class_1_train_smote:.2%}")
+        print(f"\nRatio of class '0' in the training smote set: {ratio_class_0_train_smote:.2%}")
+
+        # Update dictionary with SMOTE results
+        x_y_fit_blind_transform_dict['x_fit'] = x_smote
+        x_y_fit_blind_transform_dict['y_fit'] = y_smote
+        x_y_fit_blind_transform_dict['smote_variant'] = smote_type
+        x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
+        x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
+        print(f"Total process: {count}")
+
+    # Save to a different output file containing the SMOTE type in the filename
+    output_file = output_dir / f'x_y_SMOTE_{naming_file}_{smote_type}_transform.pkl'
     joblib.dump(x_y_fit_blind_transform, output_file)
     return x_y_fit_blind_transform
 
@@ -180,7 +240,7 @@ def set_smote(x_y_fit_blind_transform):
 def normalize_x(x_y_fit_blind_transform, normalize_method):
     # Get the input and output directories
     _, output_dir = get_paths()
-    
+
     for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
         if normalize_method == 'min_max':
             x_y_fit_blind_transform_dict['x_fit'] = scale_sparse_matrix(x_y_fit_blind_transform_dict['x_fit'])
@@ -190,25 +250,24 @@ def normalize_x(x_y_fit_blind_transform, normalize_method):
             x_y_fit_blind_transform_dict['x_fit'] = log_transform_tfidf(x_y_fit_blind_transform_dict['x_fit'])
             x_y_fit_blind_transform_dict['x_blind_test'] = log_transform_tfidf(
                 x_y_fit_blind_transform_dict['x_blind_test'])
-    
+
     output_file = output_dir / f'normalize_{get_var_name(x_y_fit_blind_transform)}_{normalize_method}_transform.pkl'
     joblib.dump(x_y_fit_blind_transform, output_file)
     return x_y_fit_blind_transform
 
 
 class MachineLearningScript:
-    def __init__(self, source_x: str, source_y: str, term_represented: list, pre_process_steps: list,
+    def __init__(self, source_x: Path, source_y: Path, term_represented: list, pre_process_steps: list,
                  n_gram_range: list):
         # Get the input and output directories
         self.input_dir, self.output_dir = get_paths()
-        
+
         self.source_x = joblib.load(source_x)
         self.source_y = joblib.load(source_y)
         self.term_represented = term_represented
         self.pre_process_steps = pre_process_steps
         self.n_gram_range = n_gram_range
-        self.scaler = MinMaxScaler()
-        self.smote = SMOTE()
+        self.x_y_fit_blind_transform = None
 
     def indexing_x(self):
         temp_x = []
@@ -225,7 +284,7 @@ class MachineLearningScript:
                         name: vectorizer
                     }
                     temp_x.append(data_combined)
-                    
+
                     output_file = self.output_dir / 'indexing.pkl'
                     joblib.dump(temp_x, output_file)
         return temp_x
@@ -284,46 +343,113 @@ class MachineLearningScript:
                             "y_blind_test_ratio_0_1": f"{class_distribution_test[0]}:{class_distribution_test[1]}"
                         }
                         temp_x.append(data_combination)
-        
-        output_file = self.output_dir / 'x_y_fit_blind_transform_optuna.pkl'
+        self.x_y_fit_blind_transform = temp_x
+        output_file = self.output_dir / 'x_y_fit_optuna.pkl'
         joblib.dump(temp_x, output_file)
         return temp_x
+
+    def set_lda_lsa(self, naming_file):
+        _, output_dir = get_paths()
+
+        start_time = time.time()
+        start_time_gmt = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(start_time))
+        print("Start to set LDA and LSA at:", start_time_gmt)
+
+        count = 0
+        x_y_fit_blind_transform = self.x_y_fit_blind_transform
+
+        for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+            term_condition = x_y_fit_blind_transform_dict['combination'].split('_')[0]
+
+            # ----------- LDA on TF ------------
+            if term_condition == 'CountVectorizer':
+                print(f"Processing LDA for {term_condition}")
+                count += 1
+
+                lda = LatentDirichletAllocation(n_components=500, random_state=42)
+
+                # ✅ fit only on x_fit
+                lda.fit(x_y_fit_blind_transform_dict['x_fit'])
+
+                x_lda_fit = lda.transform(x_y_fit_blind_transform_dict['x_fit'])
+                x_lda_blind_test = lda.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+
+                x_y_fit_blind_transform_dict['x_fit'] = x_lda_fit
+                x_y_fit_blind_transform_dict['x_blind_test'] = x_lda_blind_test
+                x_y_fit_blind_transform_dict['term'] = 'TF_LDA'
+
+                del lda, x_lda_fit, x_lda_blind_test
+
+            # ----------- LSA on TFIDF ------------
+            elif term_condition == 'TfidfVectorizer':
+                print(f"Processing LSA for {term_condition}")
+                count += 1
+
+                lsa = TruncatedSVD(n_components=500, random_state=42)
+
+                # ✅ fit only on x_fit
+                lsa.fit(x_y_fit_blind_transform_dict['x_fit'])
+
+                x_lsa_fit = lsa.transform(x_y_fit_blind_transform_dict['x_fit'])
+                x_lsa_blind_test = lsa.transform(x_y_fit_blind_transform_dict['x_blind_test'])
+
+                x_y_fit_blind_transform_dict['x_fit'] = x_lsa_fit
+                x_y_fit_blind_transform_dict['x_blind_test'] = x_lsa_blind_test
+                x_y_fit_blind_transform_dict['term'] = 'TFidf_LSA'
+
+                del lsa, x_lsa_fit, x_lsa_blind_test
+
+        print(f"Total transformations applied: {count}")
+
+        output_file = output_dir / f'{naming_file}_with_LDA_LSA.pkl'
+        joblib.dump(x_y_fit_blind_transform, output_file)
+
+        total_time = time.time() - start_time
+        formatted_time = time.strftime("%H:%M:%S", time.gmtime(total_time))
+        print(f"Done! Total time for LDA + LSA: {formatted_time}")
+
+        return x_y_fit_blind_transform
+
 
 
 def main():
     # Get the input and output directories
-    input_dir, _ = get_paths()
-    
+    input_dir, output_dir = get_paths()
+
     # Define input file paths using the input directory
     x_path = input_dir / 'x_for_pre_training.pkl'
     y_source = input_dir / 'y_for_pre_training.pkl'
-    
+
     term_representations = [CountVectorizer, TfidfVectorizer]
     pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
     n_grams_ranges = [(1, 1), (1, 2)]
 
     # To run datafit
+    print("Start to data fit transform soon")
     run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
     indexer = run.indexing_x()
     indexer = run.data_fit_transform(indexer)
+    set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
+    print("Done with data fit transform")
 
     # To run smote
+    print("Start to set smote soon")
     time.sleep(10)
-    input_dir, _ = get_paths()  # Get paths again in case they changed
-    smote_path = input_dir / 'x_y_fit_blind_transform_optuna.pkl'
-    smote = joblib.load(smote_path)
-    smote = set_smote(smote)
-
-    # To run normalize
-    time.sleep(10)
-    input_dir, _ = get_paths()  # Get paths again in case they changed
-    normalize_path = input_dir / 'x_y_fit_blind_SMOTE_transform_optuna.pkl'
-    normalize = joblib.load(normalize_path)
-    mix_max = normalize_x(normalize, 'min_max')
-    log = normalize_x(normalize, 'log')
-
-    print("Done")
+    # To run with a specific SMOTE variant
+    input_dir, _ = get_paths()
+    normal_fit = output_dir / 'x_y_fit_optuna.pkl'
+    normal_fit_data = joblib.load(normal_fit)
+    topic_model = output_dir / f'x_y_fit_topic_model_with_LDA_LSA.pkl'
+    topic_model_data = joblib.load(topic_model)
+    # Apply different SMOTE variants
+    set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'prowsyn')
+    set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'polynom')
+    set_smote_variants(topic_model_data.copy(), 'topic_model', 'prowsyn')
+    set_smote_variants(topic_model_data.copy(), 'topic_model', 'polynom')
+    print("Done with SMOTE variants")
 
 
 if __name__ == '__main__':
+    print("Start to run main function")
     main()
+    #TODO: Check the dataset compare in the calculation exel

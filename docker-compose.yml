@@ -1,7 +1,13 @@
 services:
   python:
-    image: xxx
-  volumes:
-    .:/app/resources
-  environemnt:
-    pretrain.py:/app/resources
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - my_data:/app/resources
+    environment:
+      - INPUT_DIR=/app/resources/tsdetect/test_smell_flink/
+      - OUTPUT_DIR=/app/resources/tsdetect/test_smell_flink/
+      - OUTPUT_DIR_OPTUNA=/app/resources/tsdetect/test_smell_flink/optuna_result
+volumes:
+  my_data:
