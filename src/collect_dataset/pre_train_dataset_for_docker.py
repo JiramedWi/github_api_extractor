@@ -20,7 +20,9 @@ from imblearn.over_sampling import SMOTE
 from textblob import TextBlob
 import smote_variants as sv
 from scipy.sparse import csr_matrix
+
 print("Import libraries done")
+
 
 def get_paths():
     print("Start to get paths")
@@ -178,7 +180,7 @@ def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
     # Dictionary of available SMOTE variants
     smote_variants = {
         'prowsyn': sv.ProWSyn(random_state=42),
-        'polynom': sv.polynom_fit_SMOTE(random_state=42),
+        'polynom': sv.polynom_fit_SMOTE_poly(random_state=42),
     }
 
     # Check if requested SMOTE type exists
@@ -195,11 +197,18 @@ def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
         count += 1
 
         print(f"Applying {smote_type} SMOTE variant to data {count}...")
+        # if statement for type x_fit is ndarray or not
+        if type(x_y_fit_blind_transform_dict['x_fit']) is np.ndarray:
+            x = x_y_fit_blind_transform_dict['x_fit']
+        else:
+            x = x_y_fit_blind_transform_dict['x_fit'].toarray()
+        y = x_y_fit_blind_transform_dict['y_fit']
 
         # Apply the selected SMOTE variant
-        x_smote, y_smote = selected_smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
-                                                       x_y_fit_blind_transform_dict['y_fit'])
+        x_smote, y_smote = selected_smote.sample(x,y)
 
+        print(x_y_fit_blind_transform_dict['x_fit'].shape, x_y_fit_blind_transform_dict['y_fit'].shape)
+        print(x_smote.shape, y_smote.shape)
         # Check value is smoted or not
         if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
                 x_y_fit_blind_transform_dict['y_fit'].shape[0]:
@@ -411,7 +420,6 @@ class MachineLearningScript:
         return x_y_fit_blind_transform
 
 
-
 def main():
     # Get the input and output directories
     input_dir, output_dir = get_paths()
@@ -424,13 +432,13 @@ def main():
     pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
     n_grams_ranges = [(1, 1), (1, 2)]
 
-    # To run datafit
-    print("Start to data fit transform soon")
-    run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
-    indexer = run.indexing_x()
-    indexer = run.data_fit_transform(indexer)
-    set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
-    print("Done with data fit transform")
+    # # To run datafit
+    # print("Start to data fit transform soon")
+    # run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
+    # indexer = run.indexing_x()
+    # indexer = run.data_fit_transform(indexer)
+    # set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
+    # print("Done with data fit transform")
 
     # To run smote
     print("Start to set smote soon")
@@ -443,9 +451,13 @@ def main():
     topic_model_data = joblib.load(topic_model)
     # Apply different SMOTE variants
     set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'prowsyn')
+    print("Done with SMOTE variants at normal fit prowsyn")
     set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'polynom')
+    print("Done with SMOTE variants at normal fit polynom")
     set_smote_variants(topic_model_data.copy(), 'topic_model', 'prowsyn')
+    print("Done with SMOTE variants at topic_model prowsyn")
     set_smote_variants(topic_model_data.copy(), 'topic_model', 'polynom')
+    print("Done with SMOTE variants at topic_model polynom")
     print("Done with SMOTE variants")
 
 
