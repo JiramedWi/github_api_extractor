@@ -180,7 +180,7 @@ def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
     # Dictionary of available SMOTE variants
     smote_variants = {
         'prowsyn': sv.ProWSyn(random_state=42),
-        'polynom': sv.polynom_fit_SMOTE(random_state=42),
+        'polynom': sv.polynom_fit_SMOTE_poly(random_state=42),
     }
 
     # Check if requested SMOTE type exists
@@ -451,9 +451,13 @@ def main():
     topic_model_data = joblib.load(topic_model)
     # Apply different SMOTE variants
     set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'prowsyn')
+    print("Done with SMOTE variants at normal fit prowsyn")
     set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'polynom')
+    print("Done with SMOTE variants at normal fit polynom")
     set_smote_variants(topic_model_data.copy(), 'topic_model', 'prowsyn')
+    print("Done with SMOTE variants at topic_model prowsyn")
     set_smote_variants(topic_model_data.copy(), 'topic_model', 'polynom')
+    print("Done with SMOTE variants at topic_model polynom")
     print("Done with SMOTE variants")
 
 
