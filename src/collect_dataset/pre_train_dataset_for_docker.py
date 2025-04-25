@@ -178,7 +178,7 @@ def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
     # Dictionary of available SMOTE variants
     smote_variants = {
         'prowsyn': sv.ProWSyn(random_state=42),
-        'polynom': sv.polynom_fit_SMOTE(random_state=42),
+        'polynom': sv.polynom_fit_SMOTE_poly(random_state=42),
     }
 
     # Check if requested SMOTE type exists
@@ -424,13 +424,13 @@ def main():
     pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
     n_grams_ranges = [(1, 1), (1, 2)]
 
-    # To run datafit
-    print("Start to data fit transform soon")
-    run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
-    indexer = run.indexing_x()
-    indexer = run.data_fit_transform(indexer)
-    set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
-    print("Done with data fit transform")
+    # # To run datafit
+    # print("Start to data fit transform soon")
+    # run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
+    # indexer = run.indexing_x()
+    # indexer = run.data_fit_transform(indexer)
+    # set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
+    # print("Done with data fit transform")
 
     # To run smote
     print("Start to set smote soon")
