@@ -20,7 +20,9 @@ from imblearn.over_sampling import SMOTE
 from textblob import TextBlob
 import smote_variants as sv
 from scipy.sparse import csr_matrix
+
 print("Import libraries done")
+
 
 def get_paths():
     print("Start to get paths")
@@ -178,7 +180,7 @@ def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
     # Dictionary of available SMOTE variants
     smote_variants = {
         'prowsyn': sv.ProWSyn(random_state=42),
-        'polynom': sv.polynom_fit_SMOTE_poly(random_state=42),
+        'polynom': sv.polynom_fit_SMOTE(random_state=42),
     }
 
     # Check if requested SMOTE type exists
@@ -195,11 +197,18 @@ def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
         count += 1
 
         print(f"Applying {smote_type} SMOTE variant to data {count}...")
+        # if statement for type x_fit is ndarray or not
+        if type(x_y_fit_blind_transform_dict['x_fit']) is np.ndarray:
+            x = x_y_fit_blind_transform_dict['x_fit']
+        else:
+            x = x_y_fit_blind_transform_dict['x_fit'].toarray()
+        y = x_y_fit_blind_transform_dict['y_fit']
 
         # Apply the selected SMOTE variant
-        x_smote, y_smote = selected_smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
-                                                       x_y_fit_blind_transform_dict['y_fit'])
+        x_smote, y_smote = selected_smote.sample(x,y)
 
+        print(x_y_fit_blind_transform_dict['x_fit'].shape, x_y_fit_blind_transform_dict['y_fit'].shape)
+        print(x_smote.shape, y_smote.shape)
         # Check value is smoted or not
         if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
                 x_y_fit_blind_transform_dict['y_fit'].shape[0]:
@@ -409,7 +418,6 @@ class MachineLearningScript:
         print(f"Done! Total time for LDA + LSA: {formatted_time}")
 
         return x_y_fit_blind_transform
-
 
 
 def main():
