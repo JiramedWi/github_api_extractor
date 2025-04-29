@@ -4,6 +4,8 @@ import platform
 import joblib
 import numpy as np
 import optuna
+import json
+import gc
 from pathlib import Path
 from sklearn import model_selection
 from lightgbm import LGBMClassifier
@@ -14,10 +16,13 @@ logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("optuna_tuning.log"),
+        logging.FileHandler("/app/resources/tsdetect/test_smell_flink/optuna_result/optuna_tuning.log"),
         logging.StreamHandler()
     ]
 )
+
+# Checkpoint file path
+CHECKPOINT_FILE = "/app/resources/tsdetect/test_smell_flink/optuna_result/optuna_checkpoint.json"
 
 # Function to determine paths dynamically
 def get_paths():
@@ -39,10 +44,17 @@ def get_paths():
 
     return Path(input_directory), Path(output_directory)
 
+# Load checkpoint file if exists
+def load_checkpoint():
+    if os.path.exists(CHECKPOINT_FILE):
+        with open(CHECKPOINT_FILE, 'r') as f:
+            return json.load(f)
+    return {}
 
-# Get input and output paths
-input_path, output_path = get_paths()
-
+# Save checkpoint file
+def save_checkpoint(done_datasets):
+    with open(CHECKPOINT_FILE, 'w') as f:
+        json.dump(done_datasets, f)
 
 # Early stopping callback
 def early_stopping_callback(early_stopping_rounds):
@@ -55,15 +67,17 @@ def early_stopping_callback(early_stopping_rounds):
 
         trials_without_improvement = current_trial - best_trial_number
         if trials_without_improvement >= early_stopping_rounds:
-            logging.info(f"🔕 Early stopping: {early_stopping_rounds} trials without improvement.")
-            logging.info(f"✅ Best ROC AUC so far: {study.best_value:.4f}, from trial {best_trial_number}")
+            logging.info(f"\U0001F515 Early stopping: {early_stopping_rounds} trials without improvement.")
+            logging.info(f"\u2705 Best ROC AUC so far: {study.best_value:.4f}, from trial {best_trial_number}")
             study.stop()
     return callback
 
-
 # Objective function with optional pruning
 def objective(trial, x, y):
-    # Suggest hyperparameters for LightGBM
+    # Ensure correct dtype
+    if not np.issubdtype(x.dtype, np.floating):
+        x = x.astype(np.float32)
+
     params = {
         "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
         "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
@@ -82,22 +96,29 @@ def objective(trial, x, y):
     auc_scores = result['test_score']
     score = np.mean(auc_scores)
 
-    logging.info(f"Trial {trial.number}: ROC AUC = {score:.4f} | Params = {trial.params}")
-
     if score < 0.55:
         raise TrialPruned()
 
     return score
 
-
 # Start optuna
-def find_best_parameter(datasets: list, dataset_name: str):
-    for dataset in datasets:
+def find_best_parameter(datasets: list, dataset_name: str, done_datasets: dict):
+    if dataset_name not in done_datasets:
+        done_datasets[dataset_name] = []
+
+    finished_indexes = set(done_datasets[dataset_name])
+
+    for idx, dataset in enumerate(datasets):
+        if idx in finished_indexes:
+            logging.info(f"\u23E9 Skipping {dataset_name} index {idx}, already completed.")
+            continue
+
         x_fit = dataset['x_fit']
         y_fit = dataset['y_fit']
 
-        logging.info(f"\n🚀 Starting Optuna tuning for dataset: {dataset_name}")
-        study = optuna.create_study(direction='maximize')
+        logging.info(f"\n\U0001F680 Starting Optuna tuning for {dataset_name} index {idx}")
+
+        study = optuna.create_study(direction='maximize', study_name=f"{dataset_name}_{idx}", sampler=optuna.samplers.TPESampler(seed=42))
         study.optimize(
             lambda trial: objective(trial, x_fit, y_fit),
             n_trials=1000,
@@ -106,60 +127,46 @@ def find_best_parameter(datasets: list, dataset_name: str):
         )
 
         trial = study.best_trial
-        logging.info(f"🎯 Best Trial for {dataset_name}: Score = {trial.value:.4f} | Params = {trial.params}")
+        logging.info(f"\U0001F3AF Best Trial for {dataset_name} index {idx}: Score = {trial.value:.4f} | Params = {trial.params}")
 
         dataset['best_params'] = trial.params
         dataset['result'] = trial.value
 
-    # Save results in the output directory
+        # Update checkpoint after each index
+        done_datasets[dataset_name].append(idx)
+        save_checkpoint(done_datasets)
+
+        del study, x_fit, y_fit
+        gc.collect()
+
+    # Save results after finishing whole dataset group
     results_cv_path = output_path / f"optuna_result_{dataset_name}.pkl"
     output_path.mkdir(parents=True, exist_ok=True)
     joblib.dump(datasets, results_cv_path)
 
-    logging.info(f"📦 Saved Optuna results to: {results_cv_path}")
+    logging.info(f"\U0001F4E6 Saved Optuna results to: {results_cv_path}")
 
+    gc.collect()
 
 # Main execution
 if __name__ == '__main__':
-    data_file_normal = input_path / "x_y_fit_optuna.pkl"
-    data_file_topic_model = input_path / "x_y_fit_topic_model_with_LDA_LSA.pkl"
+    input_path, output_path = get_paths()
+    done_datasets = load_checkpoint()
 
-    data_file_smote_poly_normal = input_path / "x_y_SMOTE_normal_fit_polynom_transform.pkl"
-    data_file_smote_prowsyn_normal = input_path / "x_y_SMOTE_normal_fit_prowsyn_transform.pkl"
+    dataset_files = {
+        "normal": input_path / "x_y_fit_optuna.pkl",
+        "topic_model": input_path / "x_y_fit_topic_model_with_LDA_LSA.pkl",
+        "smote_poly_normal": input_path / "x_y_SMOTE_normal_fit_polynom_transform.pkl",
+        "smote_prowsyn_normal": input_path / "x_y_SMOTE_normal_fit_prowsyn_transform.pkl",
+        "smote_poly_topic_model": input_path / "x_y_SMOTE_topic_model_polynom_transform.pkl",
+        "smote_prowsyn_topic_model": input_path / "x_y_SMOTE_topic_model_prowsyn_transform.pkl"
+    }
 
-    data_file_topic_model_smote_poly = input_path / "x_y_SMOTE_topic_model_polynom_transform.pkl"
-    data_file_topic_model_smote_prowsyn = input_path / "x_y_SMOTE_topic_model_prowsyn_transform.pkl"
+    for dataset_name, file_path in dataset_files.items():
+        logging.info(f"\U0001F4C2 Loading dataset from: {file_path}")
+        datasets = joblib.load(file_path)
+        find_best_parameter(datasets, dataset_name, done_datasets)
+        del datasets
+        gc.collect()
 
-    logging.info(f"📂 Loading dataset from: {data_file_normal}")
-    datasets = joblib.load(data_file_normal)
-    find_best_parameter(datasets, 'normal')
-    del datasets
-
-    logging.info(f"📂 Loading dataset from: {data_file_topic_model}")
-    datasets = joblib.load(data_file_topic_model)
-    find_best_parameter(datasets, 'topic_model')
-    del datasets
-
-    logging.info(f"📂 Loading dataset from: {data_file_smote_poly_normal}")
-    datasets = joblib.load(data_file_smote_poly_normal)
-    find_best_parameter(datasets, 'smote_poly_normal')
-    del datasets
-
-    logging.info(f"📂 Loading dataset from: {data_file_smote_prowsyn_normal}")
-    datasets = joblib.load(data_file_smote_prowsyn_normal)
-    find_best_parameter(datasets, 'smote_prowsyn_normal')
-    del datasets
-
-    logging.info(f"📂 Loading dataset from: {data_file_topic_model_smote_poly}")
-    datasets = joblib.load(data_file_topic_model_smote_poly)
-    find_best_parameter(datasets, 'smote_poly_topic_model')
-    del datasets
-
-    logging.info(f"📂 Loading dataset from: {data_file_topic_model_smote_prowsyn}")
-    datasets = joblib.load(data_file_topic_model_smote_prowsyn)
-    find_best_parameter(datasets, 'smote_prowsyn_topic_model')
-    del datasets
-
-    logging.info("✅ All datasets processed successfully.")
-
-
+    logging.info("\u2705 All datasets processed successfully.")

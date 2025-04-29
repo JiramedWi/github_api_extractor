@@ -42,7 +42,10 @@ RUN conda env create -f ERAWAN_env.yml
 RUN source ~/.bashrc && source activate base && \ 
     conda activate ERAWAN_env && \ 
     python -m spacy download en_core_web_sm && \ 
-    pip install optuna==3.6.0 spacy pandas textblob==0.17.1 gitpython scikit-learn scipy seaborn beautifulsoup4 imbalanced-learn smote-variants==0.7.3 && \
+    pip install --default-timeout=120 \
+    lightgbm optuna==3.6.0 spacy pandas textblob==0.17.1 \
+    gitpython scikit-learn scipy seaborn beautifulsoup4 \
+    imbalanced-learn smote-variants==0.7.3 && \
     python -c "import nltk; nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('omw-1.4')"
 COPY . .
 VOLUME /app/resources
@@ -55,5 +58,5 @@ RUN chmod +x ./src/collect_dataset/script_indexing_optuna.sh
 # RUN sed -i 's/\r$//' ./src/collect_dataset/script_pre_processing.sh
 RUN sed -i 's/\r$//' ./src/collect_dataset/script_indexing_optuna.sh
 # CMD ./src/collect_dataset/script_pre_processing.sh ${script_name} ${script_name_2} ${script_name_3} ${script_name_4} ${script_name_5}
-CMD ./src/collect_dataset/script_indexing_optuna.sh ${python_file_optuna_1}
+CMD ./src/collect_dataset/script_indexing_optuna.sh ${python_file_optuna_2}
 
