@@ -117,13 +117,49 @@ def find_best_parameter(datasets: list, dataset_name: str):
     joblib.dump(datasets, results_cv_path)
 
     logging.info(f"📦 Saved Optuna results to: {results_cv_path}")
-    return datasets
 
 
 # Main execution
 if __name__ == '__main__':
-    data_file = input_path / "x_y_fit_blind_SMOTE_transform_optuna.pkl"
-    logging.info(f"📂 Loading dataset from: {data_file}")
-    datasets = joblib.load(data_file)
+    data_file_normal = input_path / "x_y_fit_optuna.pkl"
+    data_file_topic_model = input_path / "x_y_fit_topic_model_with_LDA_LSA.pkl"
 
-    find_best_parameter(datasets, 'flink_smote')
+    data_file_smote_poly_normal = input_path / "x_y_SMOTE_normal_fit_polynom_transform.pkl"
+    data_file_smote_prowsyn_normal = input_path / "x_y_SMOTE_normal_fit_prowsyn_transform.pkl"
+
+    data_file_topic_model_smote_poly = input_path / "x_y_SMOTE_topic_model_polynom_transform.pkl"
+    data_file_topic_model_smote_prowsyn = input_path / "x_y_SMOTE_topic_model_prowsyn_transform.pkl"
+
+    logging.info(f"📂 Loading dataset from: {data_file_normal}")
+    datasets = joblib.load(data_file_normal)
+    find_best_parameter(datasets, 'normal')
+    del datasets
+
+    logging.info(f"📂 Loading dataset from: {data_file_topic_model}")
+    datasets = joblib.load(data_file_topic_model)
+    find_best_parameter(datasets, 'topic_model')
+    del datasets
+
+    logging.info(f"📂 Loading dataset from: {data_file_smote_poly_normal}")
+    datasets = joblib.load(data_file_smote_poly_normal)
+    find_best_parameter(datasets, 'smote_poly_normal')
+    del datasets
+
+    logging.info(f"📂 Loading dataset from: {data_file_smote_prowsyn_normal}")
+    datasets = joblib.load(data_file_smote_prowsyn_normal)
+    find_best_parameter(datasets, 'smote_prowsyn_normal')
+    del datasets
+
+    logging.info(f"📂 Loading dataset from: {data_file_topic_model_smote_poly}")
+    datasets = joblib.load(data_file_topic_model_smote_poly)
+    find_best_parameter(datasets, 'smote_poly_topic_model')
+    del datasets
+
+    logging.info(f"📂 Loading dataset from: {data_file_topic_model_smote_prowsyn}")
+    datasets = joblib.load(data_file_topic_model_smote_prowsyn)
+    find_best_parameter(datasets, 'smote_prowsyn_topic_model')
+    del datasets
+
+    logging.info("✅ All datasets processed successfully.")
+
+

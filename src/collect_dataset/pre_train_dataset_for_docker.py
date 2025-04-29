@@ -433,12 +433,12 @@ def main():
     n_grams_ranges = [(1, 1), (1, 2)]
 
     # # To run datafit
-    # print("Start to data fit transform soon")
-    # run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
-    # indexer = run.indexing_x()
-    # indexer = run.data_fit_transform(indexer)
-    # set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
-    # print("Done with data fit transform")
+    print("Start to data fit transform soon")
+    run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
+    indexer = run.indexing_x()
+    indexer = run.data_fit_transform(indexer)
+    set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
+    print("Done with data fit transform")
 
     # To run smote
     print("Start to set smote soon")
