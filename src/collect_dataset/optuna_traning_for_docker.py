@@ -60,6 +60,12 @@ def save_checkpoint(done_datasets):
 def early_stopping_callback(early_stopping_rounds):
     def callback(study, trial):
         current_trial = trial.number
+
+        # Avoid accessing best_trial if no completed trial yet
+        completed_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+        if len(completed_trials) == 0:
+            return
+
         best_trial_number = study.best_trial.number
 
         if current_trial < early_stopping_rounds:
@@ -67,10 +73,11 @@ def early_stopping_callback(early_stopping_rounds):
 
         trials_without_improvement = current_trial - best_trial_number
         if trials_without_improvement >= early_stopping_rounds:
-            logging.info(f"\U0001F515 Early stopping: {early_stopping_rounds} trials without improvement.")
-            logging.info(f"\u2705 Best ROC AUC so far: {study.best_value:.4f}, from trial {best_trial_number}")
+            logging.info(f"🔕 Early stopping: {early_stopping_rounds} trials without improvement.")
+            logging.info(f"✅ Best ROC AUC so far: {study.best_value:.4f}, from trial {best_trial_number}")
             study.stop()
     return callback
+
 
 # Objective function with optional pruning
 def objective(trial, x, y):
