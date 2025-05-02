@@ -61,7 +61,6 @@ def early_stopping_callback(early_stopping_rounds):
     def callback(study, trial):
         current_trial = trial.number
 
-        # Avoid accessing best_trial if no completed trial yet
         completed_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
         if len(completed_trials) == 0:
             return
@@ -73,11 +72,10 @@ def early_stopping_callback(early_stopping_rounds):
 
         trials_without_improvement = current_trial - best_trial_number
         if trials_without_improvement >= early_stopping_rounds:
-            logging.info(f"🔕 Early stopping: {early_stopping_rounds} trials without improvement.")
-            logging.info(f"✅ Best ROC AUC so far: {study.best_value:.4f}, from trial {best_trial_number}")
+            logging.info(f"\U0001F515 Early stopping: {early_stopping_rounds} trials without improvement.")
+            logging.info(f"\u2705 Best ROC AUC so far: {study.best_value:.4f}, from trial {best_trial_number}")
             study.stop()
     return callback
-
 
 # Objective function with optional pruning
 def objective(trial, x, y):
@@ -114,6 +112,8 @@ def find_best_parameter(datasets: list, dataset_name: str, done_datasets: dict):
         done_datasets[dataset_name] = []
 
     finished_indexes = set(done_datasets[dataset_name])
+    results_cv_path = output_path / f"optuna_result_{dataset_name}.pkl"
+    output_path.mkdir(parents=True, exist_ok=True)
 
     for idx, dataset in enumerate(datasets):
         if idx in finished_indexes:
@@ -139,20 +139,15 @@ def find_best_parameter(datasets: list, dataset_name: str, done_datasets: dict):
         dataset['best_params'] = trial.params
         dataset['result'] = trial.value
 
-        # Update checkpoint after each index
+        # Save checkpoint and partial result after every index
         done_datasets[dataset_name].append(idx)
         save_checkpoint(done_datasets)
+        joblib.dump(datasets, results_cv_path)
 
         del study, x_fit, y_fit
         gc.collect()
 
-    # Save results after finishing whole dataset group
-    results_cv_path = output_path / f"optuna_result_{dataset_name}.pkl"
-    output_path.mkdir(parents=True, exist_ok=True)
-    joblib.dump(datasets, results_cv_path)
-
-    logging.info(f"\U0001F4E6 Saved Optuna results to: {results_cv_path}")
-
+    logging.info(f"\U0001F4E6 Finished processing {dataset_name}, final result at: {results_cv_path}")
     gc.collect()
 
 # Main execution
