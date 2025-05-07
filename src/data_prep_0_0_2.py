@@ -39,5 +39,5 @@ y_source = ['../resources/tsdetect/all_test_smell/df_test_semantic_smell.csv',
 
 run = DataPreparation(x, y_source)
 x_result, y_result = run.read_data()
-joblib.dump(x_result, '../resources/result_0_0_2/x_0_0_2.pkl')
-joblib.dump(y_result, '../resources/result_0_0_2/y_0_0_2.pkl')
+# joblib.dump(x_result, '../resources/result_0_0_2/x_0_0_2.pkl')
+# joblib.dump(y_result, '../resources/result_0_0_2/y_0_0_2.pkl')

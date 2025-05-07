@@ -3,3 +3,5 @@
 *.txt
 .idea
 .DS_Store
+/resources
+/test_resources

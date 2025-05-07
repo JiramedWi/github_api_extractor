@@ -3,16 +3,17 @@ import re
 import pandas as pd
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
-from git import Repo
-import os, subprocess, platform
+from multiprocessing import Pool, cpu_count
 from concurrent.futures import ThreadPoolExecutor
+from git import Repo
+
+import os, subprocess, platform
 import logging
 import shutil
 
-
 # Configure logging
 # Set up a rotating file handler that limits log file size to 10 MB with backup log files
-log_handler = RotatingFileHandler('process_log.log', maxBytes=10*1024*1024, backupCount=5)
+log_handler = RotatingFileHandler('/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/log/process_log.log', maxBytes=10 * 1024 * 1024, backupCount=5)
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 log_handler.setFormatter(log_formatter)
 
@@ -58,12 +59,13 @@ def initialize_paths():
             paths['project_repo_path'] = '/path/to/your/project/repo/on/mac'
             paths['tsdetect_path'] = '/path/to/your/tsdetect/TestSmellDetector.jar/on/mac'
             paths['save_result_path'] = '/path/to/your/directory/on/mac'
-            project_sha_path = '/path/to/your/directory/on/mac/hive_use_for_run_pre_process.pkl'
+            project_sha_path = '/path/to/your/directory/on/mac/flink_use_for_run_pre_process.pkl'
+        ## Fix path here
         elif system == 'Linux':
             paths['project_repo_path'] = '/home/pee/repo'
             paths['tsdetect_path'] = '/home/pee/repo/github_api_extractor/resources/tsdetect/TestSmellDetector.jar'
-            paths['save_result_path'] = '/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive'
-            project_sha_path = f"{paths['save_result_path']}/hive_use_for_run_pre_process.pkl"
+            paths['save_result_path'] = '/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink'
+            project_sha_path = '/home/pee/repo/github_api_extractor/resources/pull_request_projects/flink_no_run_tsdetect_yet.pkl'
         else:
             raise EnvironmentError('Unsupported operating system')
 
@@ -88,7 +90,7 @@ def is_test_directory(directory):
 
 def is_test_file(filename):
     try:
-        logging.info(f'Checking if {filename} is a test file.')
+        # logging.info(f'Checking if {filename} is a test file.')
         return filename.endswith('.java') and ('test' in filename.lower() or 'testcase' in filename.lower())
     except Exception as e:
         logging.error(f'Error checking test file: {filename}, Error: {e}', exc_info=True)
@@ -101,12 +103,12 @@ def collect_test_files(root_dir):
         test_files = []
         for dirpath, _, filenames in os.walk(root_dir):
             # print walk through directories for debugging
-            print(dirpath, filenames)
+            # print(dirpath, filenames)
             if is_test_directory(dirpath):
                 for filename in filenames:
                     if is_test_file(filename):
                         test_files.append(os.path.join(dirpath, filename))
-                        logging.info(f'Collected test file: {os.path.join(dirpath, filename)}')
+                        # logging.info(f'Collected test file: {os.path.join(dirpath, filename)}')
         return test_files
     except Exception as e:
         logging.error(f'Error collecting test files in directory: {root_dir}, Error: {e}', exc_info=True)
@@ -131,7 +133,7 @@ def clone_and_checkout(repo_url, clone_path, sha):
         if not os.path.exists(clone_path):
             # Clone only if the repository doesn't exist
             logging.info(f'Cloning repository from {repo_url} to {clone_path}')
-            repo = Repo.clone_from(repo_url, clone_path)
+            Repo.clone_from(repo_url, clone_path)
         else:
             logging.info(f'Reusing existing repository at {clone_path}')
 
@@ -145,6 +147,7 @@ def clone_and_checkout(repo_url, clone_path, sha):
         # Checkout the desired SHA
         logging.info(f'Checking out SHA: {sha}')
         repo.git.checkout(sha)
+        print(f"start checkout repo {repo_url} with sha at {sha} to {clone_path}")
 
         return repo
     except Exception as e:
@@ -153,18 +156,22 @@ def clone_and_checkout(repo_url, clone_path, sha):
 
 
 # Run the TestSmellDetector tool for the given SHA
-def run_tsdetect(project_url, pull_url, project_name, count, sha_type, sha, testfile_prefix, directory_repo, save_result_path,
-                 tsdetect_path):
+def run_tsdetect(project_url, pull_url, project_name, count, sha_type, sha, testfile_prefix, directory_repo,
+                 save_result_path, tsdetect_path):
     try:
         test_files = write_test_files_to_csv(project_url, directory_repo)
+        # check path if not exist create it
         testfile_path = f"{save_result_path}/csv/{testfile_prefix}_{project_name}_file_{count}_{sha}.csv"
+        if not os.path.exists(f"{save_result_path}/csv"):
+            os.makedirs(f"{save_result_path}/csv")
+
         test_files.to_csv(testfile_path, index=False, header=None)
         logging.info(
             f'Saved test files for {sha_type} SHA to CSV: {testfile_prefix}_{project_name}_file_{count}_{sha}.csv')
 
         pull_number = get_pr_number(pull_url)
         try:
-            subprocess.run(['java', '-jar', tsdetect_path, testfile_path, sha_type, sha, pull_number])
+            result = subprocess.run(['java', '-jar', tsdetect_path, testfile_path, sha_type, sha, pull_number], capture_output=True, text=True, check=True)
             logging.info(f'Ran TestSmellDetector for {sha_type} SHA.')
 
         except Exception as e:
@@ -178,15 +185,15 @@ def run_tsdetect(project_url, pull_url, project_name, count, sha_type, sha, test
 
 
 # Clone the repository, checkout both SHAs, and run the detector
-def process_checkout(count, project_name, project_url, pull_url, sha_opened, sha_closed, paths):
-    clone_path = f"{paths['project_repo_path']}/tmp/clone_repo_{count}_{project_name}"
-
+def process_checkout(count, project_name, project_url, pull_url, sha_opened, sha_closed, paths, clone_path):
+    print("path to save the repo: ", clone_path)
     try:
         # Process open SHA
         logging.info(f'Processing open SHA for URL: {project_url} at pull request {pull_url}')
         clone_and_checkout(project_url, clone_path, sha_opened)
+        save_result_path = f"{paths['project_repo_path']}/tmp_flink/"
         run_tsdetect(project_url, pull_url, project_name, count, "open", sha_opened, 'open', clone_path,
-                     paths['save_result_path'],
+                     save_result_path,
                      paths['tsdetect_path'])
 
         # Remove cloned directory
@@ -196,7 +203,7 @@ def process_checkout(count, project_name, project_url, pull_url, sha_opened, sha
         logging.info(f'Processing closed SHA for URL: {project_url} at pull request {pull_url}')
         clone_and_checkout(project_url, clone_path, sha_closed)
         run_tsdetect(project_url, pull_url, project_name, count, "closed", sha_closed, 'closed', clone_path,
-                     paths['save_result_path'],
+                     save_result_path,
                      paths['tsdetect_path'])
 
         # Clean up cloned directory again
@@ -207,71 +214,71 @@ def process_checkout(count, project_name, project_url, pull_url, sha_opened, sha
         raise
 
 
+def init_pool(shared_df):
+    global project_sha_df
+    project_sha_df = shared_df
+
+
+def process_chunk(chunk, chunk_index, paths, project_name, project_url):
+    global project_sha_df
+    print("chunk_index", chunk_index)
+    clone_path = f"{paths['project_repo_path']}/tmp_flink/clone_repo_{chunk_index}_{project_name}"
+    for count in chunk:
+        try:
+            sha_opened = project_sha_df['open'][count]
+            sha_closed = project_sha_df['closed'][count]
+            pull_url = project_sha_df['url'][count]
+            # Use the clone_path based on chunk_index to process each SHA
+            process_checkout(count, project_name, project_url, pull_url, sha_opened, sha_closed, paths, clone_path)
+        except Exception as e:
+            logging.error(f'Error in process_chunk for count {count}: {e}', exc_info=True)
+
+
 # Perform the auto-checkout for all SHAs in the project
 def auto_checkout(project_name, project_url, paths):
-    try:
-        sha_opened = paths['project_sha']['open']
-        sha_closed = paths['project_sha']['closed']
-        urls = paths['project_sha']['url']
+    num_chunks = 6  # We want exactly 6 chunks
+    total_items = len(paths['project_sha'])
+    chunk_size = total_items // num_chunks
 
-        # Determine the number of datasets and number of workers
-        total_datasets = len(urls)
-        num_workers = 6
+    # Divide the indices into 6 chunks, putting any excess in the last chunk
+    chunks = [list(range(i * chunk_size, (i + 1) * chunk_size)) for i in range(num_chunks - 1)]
+    chunks.append(list(range((num_chunks - 1) * chunk_size, total_items)))  # Last chunk gets the remainder
 
-        # Calculate the chunk size for each worker
-        chunk_size = total_datasets // num_workers
-        remainder = total_datasets % num_workers  # Handle leftover datasets
+    with Pool(num_chunks, initializer=init_pool, initargs=(paths['project_sha'],)) as pool:
+        pool.starmap(process_chunk, [(chunk, chunk_index, paths, project_name, project_url) for chunk_index, chunk in
+                                     enumerate(chunks)])
 
-        # Ensure disk space is available before starting
-        check_disk_usage('/', 100)  # Ensure at least 100GB free before starting
-
-        with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            futures = []
-            start_index = 0
-
-            for worker_id in range(num_workers):
-                # Determine the range of data for this worker
-                end_index = start_index + chunk_size + (1 if worker_id < remainder else 0)  # Distribute the remainder
-                batch_urls = urls[start_index:end_index]
-                batch_sha_opened = sha_opened[start_index:end_index]
-                batch_sha_closed = sha_closed[start_index:end_index]
-
-                # Submit the batch to the worker
-                futures.append(executor.submit(process_checkout_batch, worker_id, project_name, project_url,
-                                               batch_urls, batch_sha_opened, batch_sha_closed, paths))
-
-                # Update start_index for the next worker
-                start_index = end_index
-
-            # Wait for all workers to complete
-            for future in futures:
-                future.result()
-
-        logging.info('Completed auto-checkout process.')
-
-    except Exception as e:
-        logging.error(f'Error during auto-checkout process for {project_name}, Error: {e}', exc_info=True)
-        raise
+    logging.info('Completed auto-checkout process.')
 
 
-# Process the checkout for each batch of data assigned to a worker
-def process_checkout_batch(worker_id, project_name, project_url, urls, sha_opened, sha_closed, paths):
-    try:
-        for count, url in enumerate(urls):
-            # Process individual SHAs within the chunk assigned to this worker
-            process_checkout(count, project_name, project_url, url, sha_opened[count], sha_closed[count], paths)
-
-        logging.info(f'Worker {worker_id} completed processing of its dataset chunk.')
-
-    except Exception as e:
-        logging.error(f'Error during batch processing by worker {worker_id}: {e}', exc_info=True)
-        raise
+# # Process the checkout for each batch of data assigned to a worker
+# def process_checkout_batch(worker_id, project_name, project_url, urls, sha_opened, sha_closed, paths):
+#
+#     try:
+#         for count, url in enumerate(urls):
+#             # Process individual SHAs within the chunk assigned to this worker
+#             process_checkout(count, project_name, project_url, url, sha_opened.iloc[count], sha_closed.iloc[count],
+#                              paths)
+#
+#         logging.info(f'Worker {worker_id} completed processing of its dataset chunk.')
+#
+#     except Exception as e:
+#         logging.error(f'Error during batch processing by worker {worker_id}: {e}', exc_info=True)
+#         raise
 
 
 # Main execution
 if __name__ == "__main__":
-    try:
-        paths = initialize_paths()
-        auto_checkout('hive', 'https://github.com/apache/hive.git', paths)
-    except Exception as e:
-        logging.error(f'Fatal error in main execution: {e}', exc_info=True)
+    paths = initialize_paths()
+    auto_checkout('flink', 'https://github.com/apache/flink.git', paths)
+    # auto_checkout('hive', 'https://github.com/apache/hive.git', paths)
+    # try:
+    #     paths = initialize_paths()
+    #     auto_checkout('hive', 'https://github.com/apache/hive.git', paths)
+    # except Exception as e:
+    #     logging.error(f'Fatal error in main execution: {e}', exc_info=True)
+    # try:
+    #     paths = initialize_paths()
+    #     auto_checkout('flink', 'https://github.com/apache/flink.git', paths)
+    # except Exception as e:
+    #     logging.error(f'Fatal error in main execution: {e}', exc_info=True)

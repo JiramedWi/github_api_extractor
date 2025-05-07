@@ -199,6 +199,8 @@ def parse_combination(combination_text):
 
 
 # Dataframe dataset
+x_y_fit_normal = joblib.load('../resources/result_0_0_3/x_y_fit_normal_0_0_3.pkl')
+
 normal_result_for_train = joblib.load('../resources/result_0_0_2/x_y_fit_blind_transform_0_0_2.pkl')
 normal_result_for_train_normalize_min_max = joblib.load(
     '../resources/result_0_0_2/normalize_x_y_fit_blind_transform_0_0_2_min_max_transform_0.0.2.pkl')
