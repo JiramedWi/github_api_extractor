@@ -1,7 +1,8 @@
 import pandas as pd
 
 # Read the CSV (adjust path if needed)
-df = pd.read_csv('/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/summary_all_results.csv')
+# df = pd.read_csv('/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/final_training_16_05/final_training/summary_all_results.csv')
+df = pd.read_csv('/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/training_result_27_5/final_training/summary_all_results.csv')
 
 # Rename columns to match the ranking function’s expectations
 df = df.rename(columns={

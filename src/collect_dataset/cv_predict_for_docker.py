@@ -1,9 +1,11 @@
 import os
 import logging
-from sys import platform
+import platform
 
 import joblib
 import warnings
+
+import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
@@ -25,8 +27,8 @@ def get_paths():
         logging.info(f"Detected OS: {system_name}")
 
         if system_name == "Linux":
-            input_directory = "/app/resources/tsdetect/test_smell_flink"
-            output_directory = "/app/resources/tsdetect/test_smell_flink/optuna_result"
+            input_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_15_5"
+            output_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/training_result_27_5"
         elif system_name == "Darwin":  # macOS
             input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
             output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
@@ -38,7 +40,8 @@ def get_paths():
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler(),
+              logging.FileHandler("/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/training_result_27_5/cv_predict.log")]
 )
 
 # Suppress warnings during cross-validation
@@ -56,19 +59,24 @@ def train_cv_and_predict(dataset_name: str, dataset_path: Path):
     datasets = joblib.load(dataset_path)
 
     for idx, data in enumerate(datasets):
-        x_fit = data["x_fit"]
-        y_fit = data["y_fit"]
-        x_blind_test = data["x_blind_test"]
-        y_blind_test = data["y_blind_test"]
+        x_fit = data["x_fit"].copy()
+        y_fit = data["y_fit"].copy()
+        x_blind_test = data["x_blind_test"].copy()
+        y_blind_test = data["y_blind_test"].copy()
 
-        # 🔧 Ensure data is in correct format
-        if hasattr(x_fit, "toarray"):
-            x_fit = x_fit.toarray()
-        if hasattr(x_blind_test, "toarray"):
-            x_blind_test = x_blind_test.toarray()
+        if hasattr(x_fit, "astype") and not isinstance(x_fit, np.ndarray):
+            # i.e. it's a scipy CSR or similar
+            x_fit = x_fit.astype(np.float64)  # preserves sparsity and shape
+            logging.info(f"🔄 Converting x_fit in {dataset_name} to float64 sparse matrix")
+        else:
+            # it’s already an ndarray (dense) or some other array-like
+            x_fit = np.asarray(x_fit, dtype=np.float64)
 
-        x_fit = x_fit.astype("float32")
-        x_blind_test = x_blind_test.astype("float32")
+        if hasattr(x_blind_test, "astype") and not isinstance(x_blind_test, np.ndarray):
+            x_blind_test = x_blind_test.astype(np.float64)
+        else:
+            x_blind_test = np.asarray(x_blind_test, dtype=np.float64)
+
         params = data["best_params"]
 
         logging.info(f"🔁 [{dataset_name}] CV + Predict | Index {idx} | {data['combination']}")
@@ -98,11 +106,12 @@ def train_cv_and_predict(dataset_name: str, dataset_path: Path):
                 'test_mcc': matthews_corrcoef(y_blind_test, y_pred),
                 'test_roc_auc': roc_auc_score(y_blind_test, y_prob[:, 1]),
             })
+            # del some variables to save memory
+            del x_fit, y_fit, x_blind_test, y_blind_test
 
         except Exception as e:
             logging.error(f"❌ Error on index {idx}: {e}")
             data['error'] = str(e)
-
     # Save results
     output_dir = output_path / "final_training"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -113,7 +122,9 @@ def train_cv_and_predict(dataset_name: str, dataset_path: Path):
 
     logging.info(f"✅ Saved: cv_score_{dataset_name}.pkl & predict_score_{dataset_name}.pkl")
 
-    return datasets
+    # del something to save memory and no used
+    del datasets
+
 
 
 def merge_all_results(output_dir: Path, summary_file: str = "summary_all_results.csv"):

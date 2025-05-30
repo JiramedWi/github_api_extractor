@@ -34,8 +34,8 @@ def get_paths():
         print(f"Detected OS: {system_name}")
 
         if system_name == "Linux":
-            input_directory = "/app/resources/tsdetect/test_smell_flink"
-            output_directory = "/app/resources/tsdetect/test_smell_flink"
+            input_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink"
+            output_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink"
         elif system_name == "Darwin":  # macOS
             input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
             output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
@@ -129,51 +129,7 @@ def log_transform_tfidf(matrix):
     return np.log1p(matrix)
 
 
-def set_smote(x_y_fit_blind_transform):
-    # Get the input and output directories
-    _, output_dir = get_paths()
-
-    count = 0
-    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
-        # count loop
-        count += 1
-        # Set SMOTE oversampling
-        smote = SMOTE(sampling_strategy='auto', random_state=42)
-        x_smote, y_smote = smote.fit_resample(x_y_fit_blind_transform_dict['x_fit'],
-                                              x_y_fit_blind_transform_dict['y_fit'])
-        # Check value is smoted or not
-        if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
-                x_y_fit_blind_transform_dict['y_fit'].shape[0]:
-            print("set Balanced: x value old = " + str(
-                x_y_fit_blind_transform_dict['x_fit'].shape[0]) + ", x value new = "
-                  + str(x_smote.shape[0]) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape[0]) +
-                  ", y value new = " + str(y_smote.shape[0]))
-            print("set Balanced: x value old = " + str(
-                x_y_fit_blind_transform_dict['x_fit'].shape) + ", x value new = "
-                  + str(x_smote.shape) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape) +
-                  ", y value new = " + str(y_smote.shape))
-            pass
-        else:
-            raise Exception("It not set smote")
-        # Check ratio of Y_smote
-        class_distribution_train_smote = pd.Series(y_smote).value_counts()
-        print(f"count_y_smote {class_distribution_train_smote}")
-        ratio_class_1_train_smote = class_distribution_train_smote[1] / len(y_smote)
-        ratio_class_0_train_smote = class_distribution_train_smote[0] / len(y_smote)
-        print(f"\nRatio of class '1' in the training smote set: {ratio_class_1_train_smote:.2%}")
-        print(f"\nRatio of class '0' in the training smote set: {ratio_class_0_train_smote:.2%}")
-        x_y_fit_blind_transform_dict['x_fit'] = x_smote
-        x_y_fit_blind_transform_dict['y_fit'] = y_smote
-        x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
-        x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
-        print(f"Total process: {count}")
-
-    output_file = output_dir / 'x_y_fit_blind_SMOTE_transform_optuna.pkl'
-    joblib.dump(x_y_fit_blind_transform, output_file)
-    return x_y_fit_blind_transform
-
-
-def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
+def set_smote_variants(datasets, naming_file, smote_type):
     # Get the input and output directories
     _, output_dir = get_paths()
 
@@ -192,33 +148,33 @@ def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
     selected_smote = smote_variants[smote_type]
 
     count = 0
-    for x_y_fit_blind_transform_dict in x_y_fit_blind_transform:
+    for dataset in datasets[0:4]:
         # count loop
         count += 1
 
         print(f"Applying {smote_type} SMOTE variant to data {count}...")
         # if statement for type x_fit is ndarray or not
-        if type(x_y_fit_blind_transform_dict['x_fit']) is np.ndarray:
-            x = x_y_fit_blind_transform_dict['x_fit']
+        if type(dataset['x_fit']) is np.ndarray:
+            x = dataset['x_fit']
         else:
-            x = x_y_fit_blind_transform_dict['x_fit'].toarray()
-        y = x_y_fit_blind_transform_dict['y_fit']
+            x = dataset['x_fit'].toarray()
+        y = dataset['y_fit']
 
         # Apply the selected SMOTE variant
         x_smote, y_smote = selected_smote.sample(x,y)
 
-        print(x_y_fit_blind_transform_dict['x_fit'].shape, x_y_fit_blind_transform_dict['y_fit'].shape)
+        print(dataset['x_fit'].shape, dataset['y_fit'].shape)
         print(x_smote.shape, y_smote.shape)
         # Check value is smoted or not
-        if x_smote.shape[0] > x_y_fit_blind_transform_dict['x_fit'].shape[0] and y_smote.shape[0] > \
-                x_y_fit_blind_transform_dict['y_fit'].shape[0]:
+        if x_smote.shape[0] > dataset['x_fit'].shape[0] and y_smote.shape[0] > \
+                dataset['y_fit'].shape[0]:
             print("set Balanced: x value old = " + str(
-                x_y_fit_blind_transform_dict['x_fit'].shape[0]) + ", x value new = "
-                  + str(x_smote.shape[0]) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape[0]) +
+                dataset['x_fit'].shape[0]) + ", x value new = "
+                  + str(x_smote.shape[0]) + ", y value old = " + str(dataset['y_fit'].shape[0]) +
                   ", y value new = " + str(y_smote.shape[0]))
             print("set Balanced: x value old = " + str(
-                x_y_fit_blind_transform_dict['x_fit'].shape) + ", x value new = "
-                  + str(x_smote.shape) + ", y value old = " + str(x_y_fit_blind_transform_dict['y_fit'].shape) +
+                dataset['x_fit'].shape) + ", x value new = "
+                  + str(x_smote.shape) + ", y value old = " + str(dataset['y_fit'].shape) +
                   ", y value new = " + str(y_smote.shape))
             pass
         else:
@@ -233,17 +189,17 @@ def set_smote_variants(x_y_fit_blind_transform, naming_file, smote_type):
         print(f"\nRatio of class '0' in the training smote set: {ratio_class_0_train_smote:.2%}")
 
         # Update dictionary with SMOTE results
-        x_y_fit_blind_transform_dict['x_fit'] = x_smote
-        x_y_fit_blind_transform_dict['y_fit'] = y_smote
-        x_y_fit_blind_transform_dict['smote_variant'] = smote_type
-        x_y_fit_blind_transform_dict['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
-        x_y_fit_blind_transform_dict['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
+        dataset['x_fit'] = x_smote
+        dataset['y_fit'] = y_smote
+        dataset['smote_variant'] = smote_type
+        dataset['y_smote_1_ratio'] = f"{ratio_class_1_train_smote:.2%}"
+        dataset['y_smote_0_ratio'] = f"{ratio_class_0_train_smote:.2%}"
         print(f"Total process: {count}")
 
     # Save to a different output file containing the SMOTE type in the filename
     output_file = output_dir / f'x_y_SMOTE_{naming_file}_{smote_type}_transform.pkl'
-    joblib.dump(x_y_fit_blind_transform, output_file)
-    return x_y_fit_blind_transform
+    joblib.dump(datasets, output_file)
+    return datasets
 
 
 def normalize_x(x_y_fit_blind_transform, normalize_method):
@@ -433,16 +389,16 @@ def main():
     n_grams_ranges = [(1, 1), (1, 2)]
 
     # # To run datafit
-    print("Start to data fit transform soon")
-    run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
-    indexer = run.indexing_x()
-    indexer = run.data_fit_transform(indexer)
-    set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
-    print("Done with data fit transform")
+    # print("Start to data fit transform soon")
+    # run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
+    # indexer = run.indexing_x()
+    # indexer = run.data_fit_transform(indexer)
+    # set_topic_model = run.set_lda_lsa('x_y_fit_topic_model')
+    # print("Done with data fit transform")
 
     # To run smote
     print("Start to set smote soon")
-    time.sleep(10)
+    # time.sleep(10)
     # To run with a specific SMOTE variant
     input_dir, _ = get_paths()
     normal_fit = output_dir / 'x_y_fit_optuna.pkl'
