@@ -55,9 +55,13 @@ VOLUME /app/resources
 #RUN conda env create -f ERAWAN_env.yml  && conda activate ERAWAN_env && python -m spacy download en_core_web_sm
 #ENV script_name=java_script_upgrade.py
 # RUN chmod +x ./src/collect_dataset/script_after_build.sh
-RUN chmod +x ./src/collect_dataset/script_training.sh
-# RUN sed -i 's/\r$//' ./src/collect_dataset/script_pre_processing.sh
-RUN sed -i 's/\r$//' ./src/collect_dataset/script_training.sh
-# CMD ./src/collect_dataset/script_pre_processing.sh ${script_name} ${script_name_2} ${script_name_3} ${script_name_4} ${script_name_5}
-CMD ./src/collect_dataset/script_training.sh ${python_file_cv_predict}
+RUN chmod +x ./src/collect_dataset/script_indexing_optuna.sh
+RUN #chmod +x ./src/collect_dataset/script_training.sh
 
+# RUN sed -i 's/\r$//' ./src/collect_dataset/script_pre_processing.sh
+RUN sed -i 's/\r$//' ./src/collect_dataset/script_indexing_optuna.sh
+RUN #sed -i 's/\r$//' ./src/collect_dataset/script_training.sh
+# CMD ./src/collect_dataset/script_pre_processing.sh ${script_name} ${script_name_2} ${script_name_3} ${script_name_4} ${script_name_5}
+# CMD ./src/collect_dataset/script_indexing_optuna.sh ${python_file_optuna_2} && \
+#     ./src/collect_dataset/script_training.sh ${python_file_cv_predict}
+CMD ./src/collect_dataset/script_indexing_optuna.sh ${python_file_optuna_1}
