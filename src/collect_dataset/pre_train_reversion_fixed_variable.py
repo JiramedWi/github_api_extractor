@@ -1,3 +1,6 @@
+import gc
+import psutil
+
 import logging
 import time
 import os
@@ -22,7 +25,7 @@ import smote_variants as sv
 from scipy.sparse import csr_matrix
 
 # Configure a custom log file path
-LOG_FILE_PATH = "/home/pee/repo/github_api_extractor/resources/Logger/log_pre_train_reversion_fixed_variable_28_05.log"
+LOG_FILE_PATH = "/resources/tsdetect/test_smell_flink/log_result_04_6/result_smote.log"
 
 logging.basicConfig(
     filename=str(LOG_FILE_PATH),
@@ -52,6 +55,9 @@ def get_paths():
         elif system_name == "Darwin":  # macOS
             input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
             output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
+        elif system_name == "Windows":
+            input_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink"
+            output_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink"
         else:
             logging.error(f"Unsupported operating system: {system_name}")
             raise EnvironmentError(f"Unsupported operating system: {system_name}")
@@ -166,24 +172,19 @@ def set_smote_variants(datasets, naming_file, smote_type):
                         'y_smote_1_ratio': f"{ratio_class_1:.2%}", 'y_smote_0_ratio': f"{ratio_class_0:.2%}"})
         logging.info(f"Total process: {count}")
 
+        # Free memory
+        del x, y, x_smote, y_smote
+        import gc
+        gc.collect()
+
+        # Check RAM left
+        mem = psutil.virtual_memory()
+        ram_left_gb = mem.available / (1024 ** 3)
+        logging.info(f"[Loop {count}] RAM available: {ram_left_gb:.2f} GB")
+
     output_file = output_dir / f'x_y_SMOTE_{naming_file}_{smote_type}_transform.pkl'
     joblib.dump(datasets, output_file)
-    return datasets
-
-
-def normalize_x(data_list, normalize_method):
-    _, output_dir = get_paths()
-    for item in data_list:
-        if normalize_method == 'min_max':
-            item['x_fit'] = scale_sparse_matrix(item['x_fit'])
-            item['x_blind_test'] = scale_sparse_matrix(item['x_blind_test'])
-        elif normalize_method == 'log':
-            item['x_fit'] = log_transform_tfidf(item['x_fit'])
-            item['x_blind_test'] = log_transform_tfidf(item['x_blind_test'])
-    output_file = output_dir / f'normalize_{get_var_name(data_list)}_{normalize_method}_transform.pkl'
-    joblib.dump(data_list, output_file)
-    return data_list
-
+    logging.info(f"Im done running datasets")
 
 class MachineLearningScript:
     def __init__(self, source_x: Path, source_y: Path, term_represented: list, pre_process_steps: list,
@@ -296,9 +297,10 @@ def main():
     # normal_fit_data = joblib.load(output_dir / 'x_y_fit_optuna.pkl')
     normal_fit_data = joblib.load(input_dir / 'x_y_fit_optuna.pkl')
     # topic_model_data = joblib.load(output_dir / f'x_y_fit_topic_model_with_LDA_LSA.pkl')
-    topic_model_data = joblib.load(input_dir / f'x_y_fit_topic_model_with_LDA_LSA.pkl')
     set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'prowsyn')
     set_smote_variants(normal_fit_data.copy(), 'normal_fit', 'polynom')
+    del normal_fit_data
+    topic_model_data = joblib.load(input_dir / f'x_y_fit_topic_model_with_LDA_LSA.pkl')
     set_smote_variants(topic_model_data.copy(), 'topic_model', 'prowsyn')
     set_smote_variants(topic_model_data.copy(), 'topic_model', 'polynom')
     logging.info("Done with SMOTE variants")

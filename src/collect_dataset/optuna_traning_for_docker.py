@@ -157,11 +157,11 @@ if __name__ == '__main__':
 
     dataset_files = {
         "normal": input_path / "x_y_fit_optuna.pkl",
-        "topic_model": input_path / "x_y_fit_topic_model_with_LDA_LSA.pkl",
-        "smote_poly_normal": input_path / "x_y_SMOTE_normal_fit_polynom_transform.pkl",
-        "smote_prowsyn_normal": input_path / "x_y_SMOTE_normal_fit_prowsyn_transform.pkl",
-        "smote_poly_topic_model": input_path / "x_y_SMOTE_topic_model_polynom_transform.pkl",
-        "smote_prowsyn_topic_model": input_path / "x_y_SMOTE_topic_model_prowsyn_transform.pkl"
+        # "topic_model": input_path / "x_y_fit_topic_model_with_LDA_LSA.pkl",
+        # "smote_poly_normal": input_path / "x_y_SMOTE_normal_fit_polynom_transform.pkl",
+        # "smote_prowsyn_normal": input_path / "x_y_SMOTE_normal_fit_prowsyn_transform.pkl",
+        # "smote_poly_topic_model": input_path / "x_y_SMOTE_topic_model_polynom_transform.pkl",
+        # "smote_prowsyn_topic_model": input_path / "x_y_SMOTE_topic_model_prowsyn_transform.pkl"
     }
 
     for dataset_name, file_path in dataset_files.items():

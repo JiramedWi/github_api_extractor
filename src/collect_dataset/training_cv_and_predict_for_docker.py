@@ -1,8 +1,10 @@
 import os
-import platform
 import logging
+import platform
+
 import joblib
 import warnings
+import pandas as pd
 from pathlib import Path
 from datetime import datetime
 from lightgbm import LGBMClassifier
@@ -13,36 +15,48 @@ from sklearn.metrics import (
 )
 from sklearn.exceptions import UndefinedMetricWarning
 
+# Function to determine paths dynamically
 
 def get_paths():
-    print("Start to get paths")
-    input_directory = os.getenv("INPUT_DIR")
-    output_directory = os.getenv("OUTPUT_DIR")
+    input_directory = os.getenv("INPUT_DIR_TRAINING")
+    output_directory = os.getenv("OUTPUT_DIR_TRAINING")
 
-    if not input_directory or not output_directory:
-        system_name = platform.system()
-        print(f"Detected OS: {system_name}")
+    if input_directory and output_directory:
+        logging.info("Using environment variables for paths.")
+        return Path(input_directory), Path(output_directory)
 
-        if system_name == "Linux":
-            input_directory = "/app/resources/tsdetect/test_smell_flink"
-            output_directory = "/app/resources/tsdetect/test_smell_flink"
-        elif system_name == "Darwin":  # macOS
-            input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
-            output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
-        else:
-            raise EnvironmentError(f"Unsupported operating system: {system_name}")
+    system_name = platform.system()
+    logging.info(f"Detected OS: {system_name}")
+
+    if system_name == "Linux":
+        input_directory = "/app/resources/tsdetect/test_smell_flink"
+        output_directory = "/app/resources/tsdetect/test_smell_flink/optuna_result"
+    elif system_name == "Darwin":  # macOS
+        input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
+        output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
+    elif system_name == "Windows":
+        input_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
+        output_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/training_result"
+    else:
+        raise EnvironmentError(f"Unsupported operating system: {system_name}")
 
     return Path(input_directory), Path(output_directory)
 # Logging setup
+log_file = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/training_result/training_result.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[
+        logging.FileHandler(log_file, encoding="utf-8"),
+        logging.StreamHandler()
+    ]
 )
 
 # Suppress warnings during cross-validation
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+
+
 
 # Training and evaluation metrics
 SCORING = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc']
@@ -57,6 +71,15 @@ def train_cv_and_predict(dataset_name: str, dataset_path: Path):
         y_fit = data["y_fit"]
         x_blind_test = data["x_blind_test"]
         y_blind_test = data["y_blind_test"]
+
+        # 🔧 Ensure data is in correct format
+        if hasattr(x_fit, "toarray"):
+            x_fit = x_fit.toarray()
+        if hasattr(x_blind_test, "toarray"):
+            x_blind_test = x_blind_test.toarray()
+
+        x_fit = x_fit.astype("float32")
+        x_blind_test = x_blind_test.astype("float32")
         params = data["best_params"]
 
         logging.info(f"🔁 [{dataset_name}] CV + Predict | Index {idx} | {data['combination']}")
@@ -136,24 +159,21 @@ def merge_all_results(output_dir: Path, summary_file: str = "summary_all_results
 
 # ========== ENTRY POINT ==========
 if __name__ == "__main__":
-    import pandas as pd
 
     input_path, output_path = get_paths()
 
     # List your tuned optuna results here (dataset_name, file_path)
     dataset_files = [
         ("normal", input_path / "optuna_result_normal.pkl"),
-        ("topic", input_path / "optuna_result_topic_model.pkl"),
-        ("polynorm_normal", input_path / "optuna_result_smote_poly_normal.pkl"),
-        ("polynorm_topic", input_path / "optuna_result_smote_poly_topic_model.pkl"),
-        ("prowsyn_normal", input_path / "optuna_result_smote_prowsyn_normal.pkl"),
-        ("prowsyn_topic", input_path / "optuna_result_smote_prowsyn_topic_model.pkl"),
+        ("topic_model", input_path / "optuna_result_topic_model.pkl"),
+        ("smote_poly_normal", input_path / "optuna_result_smote_poly_normal.pkl"),
+        ("smote_prowsyn_normal", input_path / "optuna_result_smote_prowsyn_normal.pkl"),
+        ("smote_poly_topic", input_path / "optuna_result_smote_poly_topic_model.pkl"),
+        ("smote_prowsyn_topic", input_path / "optuna_result_smote_prowsyn_topic_model.pkl")
     ]
-        
 
     for dataset_name, file_path in dataset_files:
         train_cv_and_predict(dataset_name, file_path)
 
     # Optional summary table for advisor
     merge_all_results(output_path / "final_training")
-
