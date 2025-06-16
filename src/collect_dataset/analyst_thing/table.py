@@ -46,12 +46,14 @@ def rank_table_summary(
     else:
         actual_results = ["test_f1", "test_roc_auc"]
     output_cols = [
-        "Textual feature", "Stem lemma", "N-gram", "Imba handling", "overall_rank",
+        "Textual feature", "Stem lemma", "N-gram", "Topic modeling", "Imba handling", "overall_rank",
         f"{metrics_prefix}_precision_macro_rank",
         f"{metrics_prefix}_recall_macro_rank",
         f"{metrics_prefix}_f1_macro_rank",
         f"{metrics_prefix}_roc_auc_rank",
     ] + actual_results
+    if "result" in df_sub.columns:
+        output_cols.append("result")
     if "source_name" in df_sub.columns:
         output_cols.append("source_name")
     output_cols = [c for c in output_cols if c in df_sub.columns]
@@ -61,14 +63,14 @@ def rank_table_summary(
 
 def make_summary_table_cv(csv_path, top_n=5, output_prefix="summary_cv", save_dir="."):
     os.makedirs(save_dir, exist_ok=True)
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, na_filter=False)
     results = {}
     for y_name in df["y_name"].unique():
         full_table, top_n_table = rank_table_summary(df, "cv", y_name, top_n=top_n, use_both=False)
         full_path = os.path.join(save_dir, f"{output_prefix}_full_{y_name}.csv")
         topn_path = os.path.join(save_dir, f"{output_prefix}_top{top_n}_{y_name}.csv")
-        full_table.to_csv(full_path, index=False)
-        top_n_table.to_csv(topn_path, index=False)
+        full_table.to_csv(full_path, index=False, na_rep="None")
+        top_n_table.to_csv(topn_path, index=False, na_rep="None")
         results[y_name] = {"full": full_table, "top": top_n_table}
     print(f"Saved CV summary tables for all test smell categories in {save_dir}.")
     return results
@@ -81,15 +83,15 @@ def make_summary_table_predict(csv_path, top_n=5, output_prefix="summary_predict
         full_table, top_n_table = rank_table_summary(df, "test", y_name, top_n=top_n, use_both=False)
         full_path = os.path.join(save_dir, f"{output_prefix}_full_{y_name}.csv")
         topn_path = os.path.join(save_dir, f"{output_prefix}_top{top_n}_{y_name}.csv")
-        full_table.to_csv(full_path, index=False)
-        top_n_table.to_csv(topn_path, index=False)
+        full_table.to_csv(full_path, index=False, na_rep="None")
+        top_n_table.to_csv(topn_path, index=False, na_rep="None")
         results[y_name] = {"full": full_table, "top": top_n_table}
     print(f"Saved Predict summary tables for all test smell categories in {save_dir}.")
     return results
 
 def make_summary_table_both(csv_path, top_n=5, aggregation_method="average_all", output_prefix="summary_both", save_dir="."):
     os.makedirs(save_dir, exist_ok=True)
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, na_filter=False)
     results = {}
     for y_name in df["y_name"].unique():
         full_table, top_n_table = rank_table_summary(
@@ -97,8 +99,8 @@ def make_summary_table_both(csv_path, top_n=5, aggregation_method="average_all",
         )
         full_path = os.path.join(save_dir, f"{output_prefix}_full_{aggregation_method}_{y_name}.csv")
         topn_path = os.path.join(save_dir, f"{output_prefix}_top{top_n}_{aggregation_method}_{y_name}.csv")
-        full_table.to_csv(full_path, index=False)
-        top_n_table.to_csv(topn_path, index=False)
+        full_table.to_csv(full_path, index=False, na_rep="None")
+        top_n_table.to_csv(topn_path, index=False, na_rep="None")
         results[y_name] = {"full": full_table, "top": top_n_table}
     print(f"Saved BOTH summary tables (aggregation_method={aggregation_method}) for all test smell categories in {save_dir}.")
     return results
