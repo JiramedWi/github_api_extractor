@@ -31,8 +31,8 @@ def get_paths():
     logging.info(f"Detected OS: {system_name}")
 
     if system_name == "Linux":
-        input_directory = "/app/resources/tsdetect/test_smell_flink"
-        output_directory = "/app/resources/tsdetect/test_smell_flink/optuna_result"
+        input_directory = "/home/pee/repo/github_api_extractor/resources/optuna_result_10_6"
+        output_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result"
     elif system_name == "Darwin":  # macOS
         input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
         output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
@@ -45,7 +45,7 @@ def get_paths():
     return Path(input_directory), Path(output_directory)
 
 # Logging setup
-log_file = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/log_result_04_6/training_result.log"
+log_file = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/cv_predict_02.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s",
@@ -134,7 +134,7 @@ def train_cv_and_predict(dataset_name: str, dataset_path: Path):
 
         try:
             clf = LGBMClassifier(**params, n_jobs=-1)
-            cv_results = cross_validate(clf, x_fit, y_fit, cv=5, scoring=SCORING, n_jobs=-1)
+            cv_results = cross_validate(clf, x_fit, y_fit, cv=5, scoring=SCORING, n_jobs=1)
             data.update({
                 'cv_precision_macro': cv_results['test_precision_macro'].mean(),
                 'cv_recall_macro': cv_results['test_recall_macro'].mean(),
@@ -162,10 +162,11 @@ def train_cv_and_predict(dataset_name: str, dataset_path: Path):
         logging.info(f"💾 Checkpoint saved after index {idx}")
 
         # === NEW: Explicit memory cleanup ===
-        del x_fit, x_blind_test, y_fit, y_blind_test
+        del x_fit, x_blind_test, y_fit, y_blind_test, clf
         gc.collect()
 
     logging.info(f"✅ Finished: cv_and_predict_score_{dataset_name}.pkl")
+    gc.collect()
 
 if __name__ == "__main__":
 
@@ -183,5 +184,4 @@ if __name__ == "__main__":
 
     for dataset_name, file_path in dataset_files:
         train_cv_and_predict(dataset_name, file_path)
-
-
+        
