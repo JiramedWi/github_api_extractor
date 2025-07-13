@@ -106,8 +106,8 @@ def make_summary_table_both(csv_path, top_n=5, aggregation_method="average_all",
     return results
 
 
-csv_path = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/merged_summary.csv"
-save_dir = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/tables"
+csv_path = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive/latest_result/merged_summary.csv"
+save_dir = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive/latest_result/tables"
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 # Generate summary tables for CV, Predict, and Both methods

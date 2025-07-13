@@ -85,11 +85,13 @@ def convert_list_result_to_csv_multi(list_of_tuples, csv_path):
                 "cv_recall_macro": d.get("cv_recall_macro"),
                 "cv_f1_macro": d.get("cv_f1_macro"),
                 "cv_roc_auc": d.get("cv_roc_auc"),
+                "cv_accuracy": d.get("cv_accuracy"),
                 "test_precision": d.get("test_precision"),
                 "test_recall": d.get("test_recall"),
                 "test_f1": d.get("test_f1"),
                 "test_roc_auc": d.get("test_roc_auc"),
-                "result": d.get("result"),
+                "test_accuracy": d.get("test_accuracy"),
+                # "result": d.get("result"),
                 "source_name": source_name
             }
             all_rows.append(row)
