@@ -33,7 +33,7 @@ def get_paths():
         output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
     elif system_name == "Windows":
         input_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_flink"
-        output_directory = "C:/Users/CAMT/repo/github_api_extractor/resource/tsdetect/test_smell_flink/latest_result/train_30_loop"
+        output_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_30_loop"
     else:
         raise EnvironmentError(f"Unsupported operating system: {system_name}")
 
