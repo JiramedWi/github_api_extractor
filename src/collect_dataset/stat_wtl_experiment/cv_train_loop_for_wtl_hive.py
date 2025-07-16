@@ -28,15 +28,15 @@ def get_paths():
         input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
         output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
     elif system_name == "Windows":
-        input_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_04_6"
-        output_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/new_training_result_09_6"
+        input_directory = "C:/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_flink"
+        output_directory = "C:/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_30_loop"
     else:
         raise EnvironmentError(f"Unsupported operating system: {system_name}")
 
     return Path(input_directory), Path(output_directory)
 
 # Logging setup
-log_file = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive/latest_result/cv_predict_train_30_loop.log"
+log_file = "C:/repo/github_api_extractor/resources/tsdetect/test_smell_hive/latest_result/cv_predict_train_30_loop_v2.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s",
