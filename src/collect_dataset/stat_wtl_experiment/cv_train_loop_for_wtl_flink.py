@@ -32,15 +32,15 @@ def get_paths():
         input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
         output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
     elif system_name == "Windows":
-        input_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_04_6"
-        output_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/new_training_result_09_6"
+        input_directory = "C:/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_flink"
+        output_directory = "C:/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_30_loop"
     else:
         raise EnvironmentError(f"Unsupported operating system: {system_name}")
 
     return Path(input_directory), Path(output_directory)
 
 # Logging setup
-log_file = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/cv_predict_train_30_loop_v2.log"
+log_file = "C:/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/cv_predict_train_30_loop_v2.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s",
@@ -148,12 +148,12 @@ if __name__ == "__main__":
     input_path, output_path = get_paths()
 
     dataset_files = [
-        ("normal", input_path / "optuna_result_normal.pkl"),
-        ("topic_model", input_path / "optuna_result_topic_model.pkl"),
+        # ("normal", input_path / "optuna_result_normal.pkl"),
+        # ("topic_model", input_path / "optuna_result_topic_model.pkl"),
         ("smote_poly_normal", input_path / "optuna_result_smote_poly_normal.pkl"),
         ("smote_prowsyn_normal", input_path / "optuna_result_smote_prowsyn_normal.pkl"),
-        ("smote_poly_topic", input_path / "optuna_result_smote_poly_topic_model.pkl"),
-        ("smote_prowsyn_topic", input_path / "optuna_result_smote_prowsyn_topic_model.pkl")
+        # ("smote_poly_topic", input_path / "optuna_result_smote_poly_topic_model.pkl"),
+        # ("smote_prowsyn_topic", input_path / "optuna_result_smote_prowsyn_topic_model.pkl")
     ]
 
     for dataset_name, file_path in dataset_files:
