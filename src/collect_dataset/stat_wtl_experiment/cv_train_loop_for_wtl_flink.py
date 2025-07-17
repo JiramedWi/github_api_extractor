@@ -65,10 +65,22 @@ def train_cv_30_runs(dataset_name: str, dataset_path: Path, output_path: Path, n
         logging.exception(f"[💥 ERROR] Failed to load dataset from: {dataset_path}")
         return
 
-    # === Skip if already done ===
+    # If output file exists, load it and update datasets with completed results
     if output_file.exists():
-        logging.info(f"[⏩] Skipping {dataset_name} — already exists at {output_file}")
-        return
+        try:
+            completed_datasets = joblib.load(output_file)
+            completed_count = sum(1 for d in completed_datasets if "cv_multi_run_scores" in d)
+            total = len(datasets)
+            logging.info(f"[RESUME] {completed_count} out of {total} datasets already processed in {output_file}. Resuming remaining...")
+            # Update datasets with completed results
+            for i, d in enumerate(completed_datasets):
+                if "cv_multi_run_scores" in d:
+                    datasets[i] = d
+            if completed_count == total:
+                logging.info(f"[DONE] All datasets already processed. Nothing left to do.")
+                return
+        except Exception as e:
+            logging.warning(f"[WARN] Could not load or update from output file: {e}")
 
     for idx, data in enumerate(datasets):
         if "cv_multi_run_scores" in data:
@@ -151,9 +163,9 @@ if __name__ == "__main__":
         # ("normal", input_path / "optuna_result_normal.pkl"),
         # ("topic_model", input_path / "optuna_result_topic_model.pkl"),
         # ("smote_poly_normal", input_path / "optuna_result_smote_poly_normal.pkl"),
-        ("smote_prowsyn_normal", input_path / "optuna_result_smote_prowsyn_normal.pkl"),
+        # ("smote_prowsyn_normal", input_path / "optuna_result_smote_prowsyn_normal.pkl"),
         # ("smote_poly_topic", input_path / "optuna_result_smote_poly_topic_model.pkl"),
-        # ("smote_prowsyn_topic", input_path / "optuna_result_smote_prowsyn_topic_model.pkl")
+        ("smote_prowsyn_topic", input_path / "optuna_result_smote_prowsyn_topic_model.pkl")
     ]
 
     for dataset_name, file_path in dataset_files:
