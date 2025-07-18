@@ -35,7 +35,7 @@ def get_paths():
     return Path(input_directory), Path(output_directory)
 
 # Logging setup
-log_file = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_test_predict_train_20_loop.log"
+log_file = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_test_predict_train_20_loop.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s",
@@ -48,7 +48,7 @@ logging.basicConfig(
 # ==========================
 # Main Function
 # ==========================
-def train_predict_20_runs(dataset_name: str, dataset_path: Path, output_path: Path, n_runs: int = 20, target_idx: int = None):
+def train_predict_20_runs(dataset_name: str, dataset_path: Path, output_path: Path, n_runs: int = 20, start_idx: int = 20):
     logging.info(f"📂 Loading dataset: {dataset_path}")
 
     output_dir = output_path / "predict_20_runs"
@@ -71,9 +71,8 @@ def train_predict_20_runs(dataset_name: str, dataset_path: Path, output_path: Pa
         except Exception as e:
             logging.warning(f"[WARN] Could not resume from output file: {e}")
 
-    # If target_idx is specified, only process that index
-    indices_to_process = [target_idx] if target_idx is not None else range(len(datasets))
-    for idx in indices_to_process:
+    # Process from start_idx to the end
+    for idx in range(start_idx, len(datasets)):
         data = datasets[idx]
         if "cv_multi_run_scores" in data:
             logging.info(f"[{dataset_name}|{idx}] Skipping: already processed.")
