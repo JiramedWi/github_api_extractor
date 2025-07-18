@@ -48,7 +48,7 @@ logging.basicConfig(
 # ==========================
 # Main Function
 # ==========================
-def train_predict_20_runs(dataset_name: str, dataset_path: Path, output_path: Path, n_runs: int = 20):
+def train_predict_20_runs(dataset_name: str, dataset_path: Path, output_path: Path, n_runs: int = 20, target_idx: int = None):
     logging.info(f"📂 Loading dataset: {dataset_path}")
 
     output_dir = output_path / "predict_20_runs"
@@ -71,7 +71,10 @@ def train_predict_20_runs(dataset_name: str, dataset_path: Path, output_path: Pa
         except Exception as e:
             logging.warning(f"[WARN] Could not resume from output file: {e}")
 
-    for idx, data in enumerate(datasets):
+    # If target_idx is specified, only process that index
+    indices_to_process = [target_idx] if target_idx is not None else range(len(datasets))
+    for idx in indices_to_process:
+        data = datasets[idx]
         if "cv_multi_run_scores" in data:
             logging.info(f"[{dataset_name}|{idx}] Skipping: already processed.")
             continue
