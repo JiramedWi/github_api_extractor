@@ -8,8 +8,6 @@ import logging
 from pathlib import Path
 from itertools import combinations
 from scipy.stats import wilcoxon
-from collections import defaultdict
-
 
 
 def get_paths():
@@ -24,14 +22,14 @@ def get_paths():
     logging.info(f"Detected OS: {system_name}")
 
     if system_name == "Linux":
-        input_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive/optuna_result_10_6"
-        output_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive/latest_result/wtl_20_summary"
+        input_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_10_6"
+        output_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_30_loop"
     elif system_name == "Darwin":  # macOS
-        input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_hive/predict_20_runs"
-        output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_hive/latest_result/wtl_20_summary"
+        input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result"
+        output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/wtl_30_summary"
     elif system_name == "Windows":
-        input_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_hive/optuna_result_04_6"
-        output_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_hive/new_training_result_09_6"
+        input_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_04_6"
+        output_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/new_training_result_09_6"
     else:
         raise EnvironmentError(f"Unsupported operating system: {system_name}")
 
@@ -39,7 +37,7 @@ def get_paths():
 
 
 # Logging setup
-log_file = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_hive/latest_result/train_test_20.log"
+log_file = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/cv_predict_train_30_loop_v2.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s",
@@ -218,11 +216,11 @@ if __name__ == "__main__":
         ("smote_prowsyn_topic", input_path / "predict_20_loop_result_smote_prowsyn_topic.pkl")
     ]
 
-    # y_name = "test_semantic_smell"
-    # y_name = "dependencies"
-    # y_name = 'test_execution'
-    # y_name = 'issue_in_test_step'
-    y_name = 'code_related'
+    # y_name = "label_test_semantic_smell"
+    # y_name = "label_dependencies"
+    # y_name = 'label_test_execution'
+    # y_name = 'label_issue_in_test_step'
+    y_name = 'label_code_related'
     metric_name = "f1_macro"
 
     save_path_file = output_path / f"train_test_wtl_{y_name}_{metric_name}.csv"
