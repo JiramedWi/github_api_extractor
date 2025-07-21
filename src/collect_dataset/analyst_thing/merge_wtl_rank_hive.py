@@ -72,6 +72,64 @@ def summarize_by_each_technique(merged_df: pd.DataFrame):
 
 
 # ==========================
+# Comparison Function
+# ==========================
+def compare_group_vs_others(merged_df: pd.DataFrame, focus_conditions: dict, groupby_cols: list, metric: str = "overall_rank"):
+    for col in groupby_cols:
+        merged_df[col] = merged_df[col].fillna("None")
+
+    focus_mask = pd.Series(True, index=merged_df.index)
+    for key, value in focus_conditions.items():
+        focus_mask &= (merged_df[key] == value)
+
+    focus_group = merged_df[focus_mask].copy()
+    other_group = merged_df[~focus_mask].copy()
+
+    print("\n📌 Focus Group Summary:")
+    print(focus_group[[metric, "win", "tie", "loss"]].describe())
+
+    print("\n📌 Other Group Summary:")
+    print(other_group[[metric, "win", "tie", "loss"]].describe())
+
+    return pd.concat([focus_group.assign(group="Focus Group"), other_group.assign(group="Others")], ignore_index=True)
+
+
+# ==========================
+# Flexible Summary Generator by Imba x Stem
+# ==========================
+def generate_pair_summary(
+    merged_df: pd.DataFrame,
+    imba_list: list = None,
+    stem_list: list = None,
+    sort_by: str = "overall_rank"
+):
+    imba_list = imba_list or ["ProWSyn", "Polynomial Fit", "None"]
+    stem_list = stem_list or ["textblob", "spacy", "lemmatizer", "porterstemmer"]
+
+    subset_df = merged_df[
+        merged_df["Imba handling"].isin(imba_list)
+        & merged_df["Stem lemma"].isin(stem_list)
+    ].copy()
+
+    if subset_df.empty:
+        logging.warning("⚠️ No data matched the specified Imba × Stem filter.")
+        return
+
+    subset_df["group"] = subset_df["Imba handling"] + " + " + subset_df["Stem lemma"]
+
+    summary_df = subset_df.groupby("group")[
+        ["overall_rank", "win", "tie", "loss"]
+    ].agg(["mean", "std", "count"])
+
+    summary_df = summary_df.sort_values((sort_by, "mean"))
+
+    print("\n📊 Summary Table (Custom Imba x Stem Combination):")
+    print(summary_df)
+
+    return summary_df
+
+
+# ==========================
 # Entry Point
 # ==========================
 if __name__ == "__main__":
@@ -86,14 +144,22 @@ if __name__ == "__main__":
     )
 
     base_path, wtl_path, rank_path = get_paths()
-    # y_name = "test_semantic_smell"
-    # y_name = "dependencies"
-    # y_name = 'test_execution'
-    # y_name = 'issue_in_test_step'
     y_name = "code_related"  # change to any label like 'test_execution', etc.
 
     merged = merge_wtl_with_rank(wtl_path, rank_path, y_name)
     summarize_by_each_technique(merged)
+
+    # Optional: compare ProWSyn + spacy group
+    focus_conditions = {"Imba handling": "ProWSyn", "Stem lemma": "spacy"}
+    groupby_cols = ["Imba handling", "Stem lemma"]
+    comparison_df = compare_group_vs_others(merged, focus_conditions, groupby_cols)
+
+    # Flexible pair summary: try any set!
+    generate_pair_summary(
+        merged,
+        imba_list=["ProWSyn", "Polynomial Fit", "None"],
+        stem_list=["textblob", "spacy", "lemmatizer", "porterstemmer"]
+    )
 
     output_file = base_path / f"merged_wtl_rank_{y_name}.csv"
     merged.to_csv(output_file, index=False)
