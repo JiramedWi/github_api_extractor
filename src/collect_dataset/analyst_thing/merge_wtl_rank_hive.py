@@ -1,4 +1,5 @@
 import pandas as pd
+
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", 150)
 pd.set_option("display.max_colwidth", None)
@@ -71,62 +72,108 @@ def summarize_by_each_technique(merged_df: pd.DataFrame):
         print(summary)
 
 
-# ==========================
-# Comparison Function
-# ==========================
-def compare_group_vs_others(merged_df: pd.DataFrame, focus_conditions: dict, groupby_cols: list, metric: str = "overall_rank"):
-    for col in groupby_cols:
+def summarize_by_each_technique_save_csv(merged_df: pd.DataFrame, y_name: str, output_path: Path):
+    group_cols = ["Textual feature", "Stem lemma", "N-gram", "Topic modeling", "Imba handling"]
+
+    for col in group_cols:
         merged_df[col] = merged_df[col].fillna("None")
 
-    focus_mask = pd.Series(True, index=merged_df.index)
-    for key, value in focus_conditions.items():
-        focus_mask &= (merged_df[key] == value)
+    for col in group_cols:
+        summary = merged_df.groupby(col)[
+            ["overall_rank", "win_loss_rank", "win", "tie", "loss"]
+        ].agg({
+            "overall_rank": ["mean", "std", "count"],
+            "win_loss_rank": ["mean", "std", "count"],
+            "win": ["mean", "std", "count"],
+            "tie": ["mean", "std", "count"],
+            "loss": ["mean", "std", "count"]
+        }).sort_values(("overall_rank", "mean"))
 
-    focus_group = merged_df[focus_mask].copy()
-    other_group = merged_df[~focus_mask].copy()
+        # Console view
+        print(f"\n📊 Grouped by: {col}")
+        print(summary)
 
-    print("\n📌 Focus Group Summary:")
-    print(focus_group[[metric, "win", "tie", "loss"]].describe())
-
-    print("\n📌 Other Group Summary:")
-    print(other_group[[metric, "win", "tie", "loss"]].describe())
-
-    return pd.concat([focus_group.assign(group="Focus Group"), other_group.assign(group="Others")], ignore_index=True)
+        # Save each summary to CSV
+        filename = f"summary_groupby_{col.replace(' ', '_')}_{y_name}.csv"
+        output_path.mkdir(parents=True, exist_ok=True)
+        summary.to_csv(output_path / filename)
+        logging.info(f"💾 Saved group summary: {filename}")
 
 
 # ==========================
-# Flexible Summary Generator by Imba x Stem
+# Pair Combination Summary
 # ==========================
-def generate_pair_summary(
-    merged_df: pd.DataFrame,
-    imba_list: list = None,
-    stem_list: list = None,
-    sort_by: str = "overall_rank"
-):
-    imba_list = imba_list or ["ProWSyn", "Polynomial Fit", "None"]
-    stem_list = stem_list or ["textblob", "spacy", "lemmatizer", "porterstemmer"]
+def generate_pair_summary(merged_df: pd.DataFrame):
+    merged_df["Stem lemma"] = merged_df["Stem lemma"].fillna("None")
+    merged_df["Imba handling"] = merged_df["Imba handling"].fillna("None")
+    merged_df["group"] = merged_df["Imba handling"] + " + " + merged_df["Stem lemma"]
 
-    subset_df = merged_df[
-        merged_df["Imba handling"].isin(imba_list)
-        & merged_df["Stem lemma"].isin(stem_list)
-    ].copy()
-
-    if subset_df.empty:
-        logging.warning("⚠️ No data matched the specified Imba × Stem filter.")
-        return
-
-    subset_df["group"] = subset_df["Imba handling"] + " + " + subset_df["Stem lemma"]
-
-    summary_df = subset_df.groupby("group")[
-        ["overall_rank", "win", "tie", "loss"]
+    summary = merged_df.groupby("group")[
+        ["overall_rank", "win", "tie", "loss", "win_loss_rank"]
     ].agg(["mean", "std", "count"])
 
-    summary_df = summary_df.sort_values((sort_by, "mean"))
-
     print("\n📊 Summary Table (Custom Imba x Stem Combination):")
-    print(summary_df)
+    print(summary)
 
-    return summary_df
+
+def generate_pair_summary_save_csv(merged_df: pd.DataFrame, y_name: str, output_path: Path):
+    focus_pairs = [
+        ("Polynomial Fit", "lemmatizer"),
+        ("Polynomial Fit", "porterstemmer"),
+        ("Polynomial Fit", "textblob"),
+        ("Polynomial Fit", "spacy"),
+        ("ProWSyn", "porterstemmer"),
+        ("ProWSyn", "textblob"),
+        ("ProWSyn", "lemmatizer"),
+        ("ProWSyn", "spacy"),
+        ("None", "spacy"),
+        ("None", "textblob"),
+        ("None", "lemmatizer"),
+        ("None", "porterstemmer"),
+    ]
+
+    merged_df["group"] = merged_df["Imba handling"] + " + " + merged_df["Stem lemma"]
+
+    summary_rows = []
+
+    for imba, stem in focus_pairs:
+        label = f"{imba} + {stem}"
+        subset = merged_df[(merged_df["Imba handling"] == imba) & (merged_df["Stem lemma"] == stem)].copy()
+
+        if subset.empty:
+            logging.warning(f"🚫 No data found for group: {label}")
+            continue
+
+        stats = {
+            "group": label,
+            "overall_rank_mean": subset["overall_rank"].mean(),
+            "overall_rank_std": subset["overall_rank"].std(),
+            "overall_rank_count": subset["overall_rank"].count(),
+            "win_mean": subset["win"].mean(),
+            "win_std": subset["win"].std(),
+            "win_count": subset["win"].count(),
+            "tie_mean": subset["tie"].mean(),
+            "tie_std": subset["tie"].std(),
+            "tie_count": subset["tie"].count(),
+            "loss_mean": subset["loss"].mean(),
+            "loss_std": subset["loss"].std(),
+            "loss_count": subset["loss"].count(),
+            "win_loss_rank_mean": subset["win_loss_rank"].mean(),
+            "win_loss_rank_std": subset["win_loss_rank"].std(),
+            "win_loss_rank_count": subset["win_loss_rank"].count(),
+        }
+
+        summary_rows.append(stats)
+
+    summary_df = pd.DataFrame(summary_rows)
+    print("\n📊 Summary Table (Custom Imba x Stem Combination):")
+    print(summary_df.set_index("group"))
+
+    # Save as CSV
+    output_path.mkdir(parents=True, exist_ok=True)
+    csv_path = output_path / f"summary_combine_technique_hive_{y_name}.csv"
+    summary_df.to_csv(csv_path, index=False)
+    logging.info(f"📄 Saved pair summary to {csv_path.name}")
 
 
 # ==========================
@@ -144,22 +191,18 @@ if __name__ == "__main__":
     )
 
     base_path, wtl_path, rank_path = get_paths()
-    y_name = "code_related"  # change to any label like 'test_execution', etc.
+    # y_name = "code_related"  # change to any label like 'test_execution', etc.
+    # y_name = "test_semantic_smell"
+    # y_name = "dependencies"
+    # y_name = 'test_execution'
+    y_name = 'issue_in_test_step'
 
+    save_csv_path = base_path / "discussion_tables"
     merged = merge_wtl_with_rank(wtl_path, rank_path, y_name)
     summarize_by_each_technique(merged)
-
-    # Optional: compare ProWSyn + spacy group
-    focus_conditions = {"Imba handling": "ProWSyn", "Stem lemma": "spacy"}
-    groupby_cols = ["Imba handling", "Stem lemma"]
-    comparison_df = compare_group_vs_others(merged, focus_conditions, groupby_cols)
-
-    # Flexible pair summary: try any set!
-    generate_pair_summary(
-        merged,
-        imba_list=["ProWSyn", "Polynomial Fit", "None"],
-        stem_list=["textblob", "spacy", "lemmatizer", "porterstemmer"]
-    )
+    summarize_by_each_technique_save_csv(merged, y_name, save_csv_path)
+    generate_pair_summary(merged)
+    generate_pair_summary_save_csv(merged, y_name, save_csv_path)
 
     output_file = base_path / f"merged_wtl_rank_{y_name}.csv"
     merged.to_csv(output_file, index=False)
