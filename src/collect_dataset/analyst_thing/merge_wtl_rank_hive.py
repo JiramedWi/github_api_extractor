@@ -1,5 +1,4 @@
 import pandas as pd
-
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", 150)
 pd.set_option("display.max_colwidth", None)
@@ -7,7 +6,6 @@ import os
 from pathlib import Path
 import platform
 import logging
-
 
 # ==========================
 # Path Setup
@@ -51,28 +49,7 @@ def merge_wtl_with_rank(wtl_path: Path, rank_path: Path, y_name: str):
 # ==========================
 # Grouping Summary
 # ==========================
-def summarize_by_each_technique(merged_df: pd.DataFrame):
-    group_cols = ["Textual feature", "Stem lemma", "N-gram", "Topic modeling", "Imba handling"]
-
-    # Ensure 'None' strings are filled
-    for col in group_cols:
-        merged_df[col] = merged_df[col].fillna("None")
-
-    for col in group_cols:
-        print(f"\n📊 Grouped by: {col}")
-        summary = merged_df.groupby(col)[
-            ["overall_rank", "win_loss_rank", "win", "tie", "loss"]
-        ].agg({
-            "overall_rank": ["mean", "std", "count"],
-            "win_loss_rank": ["mean", "std"],
-            "win": "mean",
-            "tie": "mean",
-            "loss": "mean"
-        }).sort_values(("overall_rank", "mean"))
-        print(summary)
-
-
-def summarize_by_each_technique_save_csv(merged_df: pd.DataFrame, y_name: str, output_path: Path):
+def summarize_by_each_technique(merged_df: pd.DataFrame, y_name: str, output_path: Path):
     group_cols = ["Textual feature", "Stem lemma", "N-gram", "Topic modeling", "Imba handling"]
 
     for col in group_cols:
@@ -103,36 +80,25 @@ def summarize_by_each_technique_save_csv(merged_df: pd.DataFrame, y_name: str, o
 # ==========================
 # Pair Combination Summary
 # ==========================
-def generate_pair_summary(merged_df: pd.DataFrame):
+def generate_pair_summary_save_csv(merged_df: pd.DataFrame, y_name: str, output_path: Path, focus_pairs=None):
     merged_df["Stem lemma"] = merged_df["Stem lemma"].fillna("None")
     merged_df["Imba handling"] = merged_df["Imba handling"].fillna("None")
-    merged_df["group"] = merged_df["Imba handling"] + " + " + merged_df["Stem lemma"]
 
-    summary = merged_df.groupby("group")[
-        ["overall_rank", "win", "tie", "loss", "win_loss_rank"]
-    ].agg(["mean", "std", "count"])
-
-    print("\n📊 Summary Table (Custom Imba x Stem Combination):")
-    print(summary)
-
-
-def generate_pair_summary_save_csv(merged_df: pd.DataFrame, y_name: str, output_path: Path):
-    focus_pairs = [
-        ("Polynomial Fit", "lemmatizer"),
-        ("Polynomial Fit", "porterstemmer"),
-        ("Polynomial Fit", "textblob"),
-        ("Polynomial Fit", "spacy"),
-        ("ProWSyn", "porterstemmer"),
-        ("ProWSyn", "textblob"),
-        ("ProWSyn", "lemmatizer"),
-        ("ProWSyn", "spacy"),
-        ("None", "spacy"),
-        ("None", "textblob"),
-        ("None", "lemmatizer"),
-        ("None", "porterstemmer"),
-    ]
-
-    merged_df["group"] = merged_df["Imba handling"] + " + " + merged_df["Stem lemma"]
+    if focus_pairs is None:
+        focus_pairs = [
+            ("Polynomial Fit", "lemmatizer"),
+            ("Polynomial Fit", "porterstemmer"),
+            ("Polynomial Fit", "textblob"),
+            ("Polynomial Fit", "spacy"),
+            ("ProWSyn", "porterstemmer"),
+            ("ProWSyn", "textblob"),
+            ("ProWSyn", "lemmatizer"),
+            ("ProWSyn", "spacy"),
+            ("None", "spacy"),
+            ("None", "textblob"),
+            ("None", "lemmatizer"),
+            ("None", "porterstemmer"),
+        ]
 
     summary_rows = []
 
@@ -199,9 +165,7 @@ if __name__ == "__main__":
 
     save_csv_path = base_path / "discussion_tables"
     merged = merge_wtl_with_rank(wtl_path, rank_path, y_name)
-    summarize_by_each_technique(merged)
-    summarize_by_each_technique_save_csv(merged, y_name, save_csv_path)
-    generate_pair_summary(merged)
+    summarize_by_each_technique(merged, y_name, save_csv_path)
     generate_pair_summary_save_csv(merged, y_name, save_csv_path)
 
     output_file = base_path / f"merged_wtl_rank_{y_name}.csv"
