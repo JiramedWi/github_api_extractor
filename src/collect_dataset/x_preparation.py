@@ -2,23 +2,10 @@ import platform
 
 import pandas as pd
 import string
-import requests
 import re
-import nltk
-from nltk.corpus import stopwords
-from nltk.corpus import wordnet
-from nltk.stem import PorterStemmer
-from nltk.tokenize import word_tokenize
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from scipy.spatial.distance import cosine
-from sklearn.metrics.pairwise import cosine_similarity
 from bs4 import BeautifulSoup
 from markdown import markdown
-import numpy as np
 from pathlib import Path
-from textblob import TextBlob
-import spacy
-import os
 
 
 def get_default_paths():

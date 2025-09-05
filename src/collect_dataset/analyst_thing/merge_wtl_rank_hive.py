@@ -1,4 +1,5 @@
 import pandas as pd
+
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", 150)
 pd.set_option("display.max_colwidth", None)
@@ -6,6 +7,7 @@ import os
 from pathlib import Path
 import platform
 import logging
+
 
 # ==========================
 # Path Setup
@@ -30,12 +32,12 @@ def get_paths():
 # Load & Merge WTL + Rank
 # ==========================
 def merge_wtl_with_rank(wtl_path: Path, rank_path: Path, y_name: str):
-    wtl_df = pd.read_csv(wtl_path / f"train_test_wtl_{y_name}_f1_macro.csv")
+    wtl_df = pd.read_csv(wtl_path / f"new_way_prove_train_test_wtl_{y_name}_f1_macro.csv")
     rank_df = pd.read_csv(rank_path / f"summary_cv_full_{y_name}.csv")
 
     merge_cols = ["Textual feature", "Stem lemma", "N-gram", "Topic modeling", "Imba handling"]
-    merged_df = pd.merge(wtl_df, rank_df[merge_cols + ["overall_rank", "cv_f1_macro", "cv_roc_auc"]],
-                         on=merge_cols, how="left")
+    merged_df = pd.merge(wtl_df, rank_df[merge_cols + ["overall_rank", "cv_f1_macro", "cv_roc_auc", "cv_f1_macro_rank"]],
+                         on=merge_cols, how="inner")
 
     if merged_df["overall_rank"].isna().any():
         logging.warning("Some combinations have missing overall_rank after merge!")
@@ -157,17 +159,17 @@ if __name__ == "__main__":
     )
 
     base_path, wtl_path, rank_path = get_paths()
-    # y_name = "code_related"  # change to any label like 'test_execution', etc.
+    y_name = "code_related"  # change to any label like 'test_execution', etc.
     # y_name = "test_semantic_smell"
     # y_name = "dependencies"
     # y_name = 'test_execution'
-    y_name = 'issue_in_test_step'
+    # y_name = 'issue_in_test_step'
 
     save_csv_path = base_path / "discussion_tables"
     merged = merge_wtl_with_rank(wtl_path, rank_path, y_name)
     summarize_by_each_technique(merged, y_name, save_csv_path)
     generate_pair_summary_save_csv(merged, y_name, save_csv_path)
 
-    output_file = base_path / f"merged_wtl_rank_{y_name}.csv"
+    output_file = base_path / f"new_prove_merged_wtl_rank_{y_name}.csv"
     merged.to_csv(output_file, index=False)
     logging.info(f"✅ Saved merged file with ranks: {output_file}")

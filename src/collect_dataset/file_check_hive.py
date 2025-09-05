@@ -2,10 +2,14 @@ import os
 
 import joblib
 
-directory_dataset = "/home/pee/repo/github_api_extractor/resources/result_0_0_3/x_y_fit_normal_0_0_3.pkl"
-directory_path_hive_optuna = "/home/pee/repo/github_api_extractor/resources/optuna_result_round_2"
-directory_path_hive_optuna_not_round2 = '/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive/optuna_result'
 
-datasets_normal = joblib.load(directory_dataset)
-optuna_result_not_round2_hive_normal = joblib.load(os.path.join(directory_path_hive_optuna_not_round2, "cv_score_normal_dataset.pkl"))
-optuna_result_hive_normal = joblib.load(os.path.join(directory_path_hive_optuna, "best_param_of_normal.pkl"))
+dataset_path = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_hive/result_0_0_3"
+result_path = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_hive/result_as_df"
+
+x_2 = joblib.load("/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_hive/result_0_0_2/x_0_0_2.pkl")
+y_2 = joblib.load("/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_hive/result_0_0_2/y_0_0_2.pkl")
+datasets_normal = joblib.load(os.path.join(dataset_path, "x_y_fit_normal_0_0_3.pkl"))
+dataset_normal_prowsyn = joblib.load(os.path.join(dataset_path, "x_y_normal_smote_prowsyn.pkl"))
+dataset_normal_polynom_fit = joblib.load(os.path.join(dataset_path, "x_y_normal_smote_polynom_fit.pkl"))
+
+result_normal = joblib.load(os.path.join(result_path, "cv_score_normal_df.pkl"))

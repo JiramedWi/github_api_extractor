@@ -359,7 +359,6 @@ def train_predict_model(df_parameters: pd.DataFrame, datasets):
             'f1_test_score': f1_test_score,
             'mcc': mcc,
             'roc_auc_test_score': roc_auc_test_score,
-            # 'prc': prc
         }
         dataset.update(result)
     result_score_path = f"../resources/result_optuna_parameter_tuning_round_2/predict_score_{get_var_name(datasets)}.pkl"

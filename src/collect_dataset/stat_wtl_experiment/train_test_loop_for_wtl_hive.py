@@ -9,6 +9,7 @@ from pathlib import Path
 from sklearn.metrics import f1_score, roc_auc_score, precision_score, recall_score, accuracy_score
 from lightgbm import LGBMClassifier
 
+
 def get_paths():
     input_directory = os.getenv("INPUT_DIR_TRAINING")
     output_directory = os.getenv("OUTPUT_DIR_TRAINING")
@@ -34,6 +35,7 @@ def get_paths():
 
     return Path(input_directory), Path(output_directory)
 
+
 # Logging setup
 log_file = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_hive/latest_result/train_test_predict_train_20_loop.log"
 logging.basicConfig(
@@ -44,6 +46,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
 
 # ==========================
 # Main Function
@@ -167,6 +170,7 @@ def train_predict_20_runs(dataset_name: str, dataset_path: Path, output_path: Pa
         gc.collect()
 
     logging.info(f"✅ Finished: predict_20_loop_result_{dataset_name}.pkl")
+
 
 # ==========================
 # Entry Point

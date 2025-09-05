@@ -272,18 +272,18 @@ class MachineLearningScript:
 def main():
     logging.info("Start to run main function")
     input_dir, output_dir = get_paths()
-    # x_path = input_dir / 'x_for_pre_training.pkl'
-    # y_source = input_dir / 'y_for_pre_training.pkl'
-    # term_representations = [CountVectorizer, TfidfVectorizer]
-    # pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
-    # n_grams_ranges = [(1, 1), (1, 2)]
-    #
-    # logging.info("Start to data fit transform soon")
-    # run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
-    # indexer = run.indexing_x()
-    # run.data_fit_transform(indexer)
-    # run.set_lda_lsa('x_y_fit_topic_model')
-    # logging.info("Done with data fit transform")
+    x_path = input_dir / 'x_for_pre_training.pkl'
+    y_source = input_dir / 'y_for_pre_training.pkl'
+    term_representations = [CountVectorizer, TfidfVectorizer]
+    pre_process_steps = [pre_process_porterstemmer, pre_process_lemmatizer, pre_process_textblob, pre_process_spacy]
+    n_grams_ranges = [(1, 1), (1, 2)]
+
+    logging.info("Start to data fit transform soon")
+    run = MachineLearningScript(x_path, y_source, term_representations, pre_process_steps, n_grams_ranges)
+    indexer = run.indexing_x()
+    run.data_fit_transform(indexer)
+    run.set_lda_lsa('x_y_fit_topic_model')
+    logging.info("Done with data fit transform")
 
     logging.info("Start to set smote soon")
     time.sleep(10)

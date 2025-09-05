@@ -1,3 +1,4 @@
+import math
 import os
 import platform
 
@@ -100,12 +101,12 @@ def infer_topic_model(source_name, vectorizer_name):
 
 
 # =====================
-# WTL Functions
+# Main WTL Function
 # =====================
 def calculate_wtl_and_merge(dataset_file_list, y_name, metric_name="f1_macro", alpha=0.05):
     all_records = []
+    comparison_logs = []
 
-    # === Load and collect records ===
     for source_name, file_path in dataset_file_list:
         records = joblib.load(file_path)
         for record in records:
@@ -115,68 +116,86 @@ def calculate_wtl_and_merge(dataset_file_list, y_name, metric_name="f1_macro", a
 
     logging.info(f"✅ Loaded {len(all_records)} records for y_name = {y_name}")
 
-    # === Build score_dict with full unique keys ===
     score_dict = {}
-    skipped_empty = 0
-    skipped_missing_metric = 0
-    skipped_bad_shape = 0
-
+    parsed_metadata = {}
     for r in all_records:
         full_id = f"{r['source_name']}__{r['combination']}"
         run_scores = r.get("cv_multi_run_scores")
-
-        if not run_scores:
-            skipped_empty += 1
+        if not run_scores or len(run_scores) != 20:
             continue
-
         metric_scores = [entry.get(metric_name) for entry in run_scores]
         if None in metric_scores:
-            skipped_missing_metric += 1
             continue
-
-        if len(metric_scores) != 20:
-            skipped_bad_shape += 1
-            continue
-
         score_dict[full_id] = metric_scores
+        comb_row = parse_combination(r["combination"])
+        parsed_metadata[full_id] = {
+            "Textual feature": comb_row["Textual feature"],
+            "Stem lemma": comb_row["Stem lemma"],
+            "N-gram": comb_row["N-gram"],
+            "Imba handling": infer_imba_handling(r["source_name"]),
+            "Topic modeling": infer_topic_model(r["source_name"], comb_row["Textual feature"]),
+        }
 
-    logging.info(f"✅ Valid combinations with 20 runs of '{metric_name}': {len(score_dict)}")
-    logging.info(f"⛔ Skipped (empty 'cv_multi_run_scores'): {skipped_empty}")
-    logging.info(f"⛔ Skipped (missing '{metric_name}' in some runs): {skipped_missing_metric}")
-    logging.info(f"⛔ Skipped (not exactly 20 scores): {skipped_bad_shape}")
+    logging.info(f"Starting WTL comparisons for {math.comb(len(score_dict), 2)} configurations...")
 
-    # === WTL Comparison ===
     summary = {cfg: {"win": 0, "tie": 0, "loss": 0} for cfg in score_dict.keys()}
+
     for cfg1, cfg2 in combinations(score_dict.keys(), 2):
         vals1 = score_dict[cfg1]
         vals2 = score_dict[cfg2]
-        # Skip comparison if all elements are exactly equal
+
+        meta1 = parsed_metadata[cfg1]
+        meta2 = parsed_metadata[cfg2]
+
         if vals1 == vals2:
             summary[cfg1]["tie"] += 1
             summary[cfg2]["tie"] += 1
-            continue
-        try:
-            stat, p = wilcoxon(vals1, vals2, zero_method="zsplit")
-            if p < alpha:
-                if np.mean(vals1) > np.mean(vals2):
-                    summary[cfg1]["win"] += 1
-                    summary[cfg2]["loss"] += 1
+            result = "tie"
+            p = 1.0
+        else:
+            try:
+                stat, p = wilcoxon(vals1, vals2, zero_method="zsplit")
+                if p < alpha:
+                    if np.mean(vals1) > np.mean(vals2):
+                        summary[cfg1]["win"] += 1
+                        summary[cfg2]["loss"] += 1
+                        result = "win"
+                    else:
+                        summary[cfg1]["loss"] += 1
+                        summary[cfg2]["win"] += 1
+                        result = "loss"
                 else:
-                    summary[cfg1]["loss"] += 1
-                    summary[cfg2]["win"] += 1
-            else:
-                summary[cfg1]["tie"] += 1
-                summary[cfg2]["tie"] += 1
-        except Exception as e:
-            logging.exception(f"❌ Error comparing {cfg1} vs {cfg2}: {str(e)}")
+                    summary[cfg1]["tie"] += 1
+                    summary[cfg2]["tie"] += 1
+                    result = "tie"
+            except Exception as e:
+                logging.exception(f"Error comparing {cfg1} vs {cfg2}")
+                continue
 
-    # === Merge WTL Results + Technique Info ===
+        comparison_logs.append({
+            "cfg1": cfg1,
+            "cfg2": cfg2,
+            "cfg1_mean": np.mean(vals1),
+            "cfg2_mean": np.mean(vals2),
+            "p_value": p,
+            "result": result,
+            "cfg1_textual": meta1["Textual feature"],
+            "cfg1_stem": meta1["Stem lemma"],
+            "cfg1_ngram": meta1["N-gram"],
+            "cfg1_imba": meta1["Imba handling"],
+            "cfg1_topic": meta1["Topic modeling"],
+            "cfg2_textual": meta2["Textual feature"],
+            "cfg2_stem": meta2["Stem lemma"],
+            "cfg2_ngram": meta2["N-gram"],
+            "cfg2_imba": meta2["Imba handling"],
+            "cfg2_topic": meta2["Topic modeling"]
+        })
+
     all_rows = []
     for r in all_records:
         full_id = f"{r['source_name']}__{r['combination']}"
         if full_id not in summary:
             continue
-
         comb_row = parse_combination(r["combination"])
         row = {
             "combination": r["combination"],
@@ -194,12 +213,7 @@ def calculate_wtl_and_merge(dataset_file_list, y_name, metric_name="f1_macro", a
         }
         all_rows.append(row)
 
-    return pd.DataFrame(all_rows)
-
-
-def ensure_parent_dir(path: Path):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Ensured parent directory exists for: {path}")
+    return pd.DataFrame(all_rows), pd.DataFrame(comparison_logs)
 
 
 # =====================
@@ -208,7 +222,6 @@ def ensure_parent_dir(path: Path):
 if __name__ == "__main__":
     logging.info("Starting WTL analyst on datasets...")
     input_path, output_path = get_paths()
-    ensure_parent_dir(output_path)
     dataset_files = [
         ("normal", input_path / "predict_20_loop_result_normal.pkl"),
         ("topic", input_path / "predict_20_loop_result_topic_model.pkl"),
@@ -218,14 +231,12 @@ if __name__ == "__main__":
         ("smote_prowsyn_topic", input_path / "predict_20_loop_result_smote_prowsyn_topic.pkl")
     ]
 
-    # y_name = "test_semantic_smell"
-    # y_name = "dependencies"
-    # y_name = 'test_execution'
-    # y_name = 'issue_in_test_step'
-    y_name = 'code_related'
+    y_name = "code_related"
     metric_name = "f1_macro"
+    #TODO change metric_name to others for analysis
 
-    save_path_file = output_path / f"train_test_wtl_{y_name}_{metric_name}.csv"
-    df = calculate_wtl_and_merge(dataset_files, y_name, metric_name)
-    df.to_csv(save_path_file, index=False)
-    logging.info("✅ Final WTL summary table saved!")
+    summary_df, comparison_log_df = calculate_wtl_and_merge(dataset_files, y_name, metric_name)
+
+    summary_df.to_csv(output_path / f"new_way_prove_train_test_wtl_{y_name}_{metric_name}.csv", index=False)
+    comparison_log_df.to_csv(output_path / f"new_way_train_test_wtl_pairwise_comparison_{y_name}_{metric_name}.csv", index=False)
+    logging.info("✅ Final WTL summary and pairwise comparison tables saved.")

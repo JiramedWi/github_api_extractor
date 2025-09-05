@@ -2,18 +2,8 @@ import pandas as pd
 import os
 import joblib
 
-import pandas as pd
 
 def parse_combination(combination_str):
-    """
-    Parses a combination string like:
-    CountVectorizer_pre_process_porterstemmer_n_grams_1_2
-    TFIDFVectorizer_pre_process_lemmatizer_n_grams_1_2
-    Returns:
-      - Textual feature
-      - Stem lemma
-      - N-gram
-    """
     if not isinstance(combination_str, str) or not combination_str:
         return pd.Series({"Textual feature": None, "Stem lemma": None, "N-gram": None, "Topic modeling": None})
 
@@ -23,8 +13,6 @@ def parse_combination(combination_str):
     n_gram = None
 
     # Handle topic modeling (LDA/LSA) as suffix or embedded
-    # Example: "TF_LDA_pre_process_spacy_n_grams_1_2"
-    #          "TFIDF_LSA_pre_process_textblob_n_grams_1_1"
     if "_pre_process_" in combination_str and "_n_grams_" in combination_str:
         before_pre, after_pre = combination_str.split("_pre_process_")
         stem_and_ngram = after_pre.split("_n_grams_")
@@ -50,6 +38,7 @@ def parse_combination(combination_str):
         "N-gram": n_gram,
     })
 
+
 def infer_imba_handling(source_name):
     s = source_name.lower()
     if "poly" in s:
@@ -58,6 +47,7 @@ def infer_imba_handling(source_name):
         return "ProWSyn"
     else:
         return "None"
+
 
 def infer_topic_model(source_name, vectorizer_name):
     s = source_name.lower()
@@ -70,6 +60,7 @@ def infer_topic_model(source_name, vectorizer_name):
         return "LSA"
     else:
         return "None"
+
 
 def convert_list_result_to_csv_multi(list_of_tuples, csv_path):
     """
@@ -115,15 +106,14 @@ def convert_list_result_to_csv_multi(list_of_tuples, csv_path):
 directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/final_training"
 
 datasets = [
-    (joblib.load(os.path.join(directory, "predict_score_normal.pkl")),           "normal"),
-    (joblib.load(os.path.join(directory, "predict_score_topic_model.pkl")),      "topic_model"),
-    (joblib.load(os.path.join(directory, "predict_score_smote_poly_normal.pkl")),"smote_poly_normal"),
+    (joblib.load(os.path.join(directory, "predict_score_normal.pkl")), "normal"),
+    (joblib.load(os.path.join(directory, "predict_score_topic_model.pkl")), "topic_model"),
+    (joblib.load(os.path.join(directory, "predict_score_smote_poly_normal.pkl")), "smote_poly_normal"),
     (joblib.load(os.path.join(directory, "predict_score_smote_poly_topic.pkl")), "smote_poly_topic"),
-    (joblib.load(os.path.join(directory, "predict_score_smote_prowsyn_normal.pkl")),"smote_prowsyn_normal"),
+    (joblib.load(os.path.join(directory, "predict_score_smote_prowsyn_normal.pkl")), "smote_prowsyn_normal"),
     (joblib.load(os.path.join(directory, "predict_score_smote_prowsyn_topic.pkl")), "smote_prowsyn_topic"),
 ]
 
 csv_path = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/merged_summary.csv"
 
 convert_list_result_to_csv_multi(datasets, csv_path)
-

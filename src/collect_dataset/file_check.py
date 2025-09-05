@@ -2,10 +2,12 @@ import os
 import joblib
 
 # โฟลเดอร์ที่เก็บไฟล์ .pkl ของคุณ
-# directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/"
+directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
 # directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/training_result/final_training/"
-directory_optuna = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_04_6/"
+directory_optuna = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_10_6"
 
+x = joblib.load(os.path.join(directory, "x_for_pre_training.pkl"))
+y = joblib.load(os.path.join(directory, "y_for_pre_training.pkl"))
 # ——— Load each Optuna result into a clear variable ———
 optuna_result_normal               = joblib.load(os.path.join(directory_optuna, "optuna_result_normal.pkl"))
 optuna_result_smote_poly_normal    = joblib.load(os.path.join(directory_optuna, "optuna_result_smote_poly_normal.pkl"))
@@ -31,11 +33,11 @@ optuna_result_topic_model          = joblib.load(os.path.join(directory_optuna, 
 # predict_score_prowsyn_topic    = joblib.load(os.path.join(directory, "predict_score_smote_prowsyn_topic.pkl"))
 # predict_score_topic            = joblib.load(os.path.join(directory, "predict_score_topic_model.pkl"))
 
-dataset_path = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/new_smote_result_04_5/"
-datasets_normal = joblib.load(os.path.join(dataset_path, "x_y_fit_optuna.pkl"))
-datasets_topic = joblib.load(os.path.join(dataset_path, "x_y_fit_topic_model_with_LDA_LSA.pkl"))
-datasets_smote_poly_normal = joblib.load(os.path.join(dataset_path, "x_y_SMOTE_normal_fit_polynom_transform.pkl"))
-datasets_smote_prowsyn_normal = joblib.load(os.path.join(dataset_path, "x_y_SMOTE_normal_fit_prowsyn_transform.pkl"))
-datasets_smote_poly_topic = joblib.load(os.path.join(dataset_path, "x_y_SMOTE_topic_model_polynom_transform.pkl"))
-datasets_smote_prowsyn_topic = joblib.load(os.path.join(dataset_path, "x_y_SMOTE_topic_model_prowsyn_transform.pkl"))
+# dataset_path = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/new_smote_result_04_5/"
+# datasets_normal = joblib.load(os.path.join(dataset_path, "x_y_fit_optuna.pkl"))
+# datasets_topic = joblib.load(os.path.join(dataset_path, "x_y_fit_topic_model_with_LDA_LSA.pkl"))
+# datasets_smote_poly_normal = joblib.load(os.path.join(dataset_path, "x_y_SMOTE_normal_fit_polynom_transform.pkl"))
+# datasets_smote_prowsyn_normal = joblib.load(os.path.join(dataset_path, "x_y_SMOTE_normal_fit_prowsyn_transform.pkl"))
+# datasets_smote_poly_topic = joblib.load(os.path.join(dataset_path, "x_y_SMOTE_topic_model_polynom_transform.pkl"))
+# datasets_smote_prowsyn_topic = joblib.load(os.path.join(dataset_path, "x_y_SMOTE_topic_model_prowsyn_transform.pkl"))
 

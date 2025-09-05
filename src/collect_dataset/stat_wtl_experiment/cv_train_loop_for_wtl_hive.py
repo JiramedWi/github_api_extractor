@@ -165,5 +165,6 @@ if __name__ == "__main__":
         train_cv_30_runs(
             dataset_name=dataset_name,
             dataset_path=file_path,
-            output_path=output_path
+            output_path=output_path,
+            n_runs=20,
         )

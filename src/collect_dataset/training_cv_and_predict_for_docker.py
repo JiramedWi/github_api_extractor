@@ -164,7 +164,7 @@ if __name__ == "__main__":
 
     # List your tuned optuna results here (dataset_name, file_path)
     dataset_files = [
-        ("normal", input_path / "optuna_result_normal.pkl"),
+        # ("normal", input_path / "optuna_result_normal.pkl"),
         ("topic_model", input_path / "optuna_result_topic_model.pkl"),
         ("smote_poly_normal", input_path / "optuna_result_smote_poly_normal.pkl"),
         ("smote_prowsyn_normal", input_path / "optuna_result_smote_prowsyn_normal.pkl"),

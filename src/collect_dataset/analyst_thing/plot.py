@@ -5,13 +5,14 @@ import seaborn as sns
 
 
 
+
 def generate_box_plots_ranks(
-    df,
-    dataset_key,
-    save_dir,
-    rank_metrics=None,
-    mapping_dict=None,
-    dataset_title_map=None
+        df,
+        dataset_key,
+        save_dir,
+        rank_metrics=None,
+        mapping_dict=None,
+        dataset_title_map=None
 ):
     """
     Plots a 2x3 grid of boxplots for each specified rank metric, with custom big titles and output filenames
@@ -29,18 +30,14 @@ def generate_box_plots_ranks(
     if rank_metrics is None:
         rank_metrics = [
             "overall_rank",
-            "cv_precision_macro_rank",
-            "cv_recall_macro_rank",
-            "cv_f1_macro_rank",
-            "cv_roc_auc_rank"
         ]
 
     group_columns = [
-        "Textual feature",    # Formerly count_vectorizer
-        "Stem lemma",         # Formerly pre_process
-        "N-gram",             # Formerly n_gram
-        "Topic modeling",     # New!
-        "Imba handling"       # Formerly smote
+        "Textual feature",  # Formerly count_vectorizer
+        "Stem lemma",  # Formerly pre_process
+        "N-gram",  # Formerly n_gram
+        "Topic modeling",  # New!
+        "Imba handling"  # Formerly smote
     ]
 
     # Optional: Map for display names in plot
@@ -54,43 +51,46 @@ def generate_box_plots_ranks(
                 df[col] = df[col].map(mapvals).fillna(df[col])
 
     for metric in rank_metrics:
-        plt.figure(figsize=(18, 10))
+        plt.figure(figsize=(14, 15))  # 3 rows × 2 columns
         for i, group_col in enumerate(group_columns):
-            plt.subplot(2, 3, i+1)
+            plt.subplot(3, 2, i + 1)
             order = sorted(df[group_col].unique())
             sns.boxplot(x=group_col, y=metric, data=df, order=order)
-            plt.title(f"overall agreement rank by {group_col} technique")
+            plt.title(f"Overall agreement rank by {group_col} technique")
             plt.xlabel(group_col)
             plt.ylabel("Rank (lower is better)")
-            print_boxplot_stats(df, metric, group_col)
-        plt.subplot(2, 3, 6)
+            print_boxplot_stats(df, dataset_key, metric, group_col)
+
+        # Blank 6th cell — truly blank white space
+        plt.subplot(3, 2, 6)
         plt.axis('off')
-        plt.text(0.5, 0.5, "Empty / Summary Cell", ha='center', va='center', fontsize=14, alpha=0.4)
-        # Main big title:
-        plt.suptitle(
-            f'Boxplot of the overall ranking analysis of each technique used in combination to predict "{dataset_title}"',
-            fontsize=18
-        )
+        plt.gca().set_frame_on(False)
+
+        # plt.suptitle(
+        #     f'Boxplot of the overall ranking analysis of each technique used in combination to predict "{dataset_title}"',
+        #     fontsize=20
+        # )
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         # Save with descriptive filename
-        filename = f"{save_dir}/boxplot_{metric}_{dataset_key}.png"
-        plt.savefig(filename)
+        # filename = f"{save_dir}/boxplot_{metric}_{dataset_key}.png"
+        # plt.savefig(filename)
         plt.show()
 
 
-def print_boxplot_stats(df, column, group_by):
+def print_boxplot_stats(df, dataset_key, column, group_by):
     """
     Prints Q1, Median, Q3 and summary stats for a rank column, grouped by a categorical variable.
     """
     grouped = df.groupby(group_by)[column]
     stats = grouped.describe(percentiles=[.25, .5, .75])
-    print(f"\nBoxplot stats for {column} grouped by {group_by}:\n")
+    print(f"\nBoxplot stats for {column} grouped by {group_by} from {dataset_key} smell:\n")
     print(stats[['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']])
     for name, group in grouped:
         q1 = group.quantile(0.25)
         median = group.median()
         q3 = group.quantile(0.75)
         print(f"{name}: Q1={q1}, Median={median}, Q3={q3}")
+
 
 dataset_title_map = {
     "code_related": "Code-related smell",
@@ -115,17 +115,17 @@ mapping_result_for_paper = {
 }
 
 # - Replace these with your actual DataFrame variables
-file_path_prefix = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/tables"  # Example, change as needed
+file_path_prefix = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/tables"  # Example, change as needed
 
 # Apply mapping if you want pretty labels
 # ranked_df_code_related = map_values(ranked_df_code_related, mapping_result_for_paper)
 # If you have no mapping function, just pass mapping_result_for_paper to the plotting function
 
 dataset_dict = {
-    "code_related": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_code_related.csv", na_filter=False),
-    "dependencies": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_dependencies.csv", na_filter=False),
-    "issue_in_test_step": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_issue_in_test_step.csv", na_filter=False),
-    "test_execution": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_test_execution.csv", na_filter=False),
+    # "code_related": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_code_related.csv", na_filter=False),
+    # "dependencies": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_dependencies.csv", na_filter=False),
+    # "issue_in_test_step": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_issue_in_test_step.csv", na_filter=False),
+    # "test_execution": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_test_execution.csv", na_filter=False),
     "test_semantic_smell": pd.read_csv(f"{file_path_prefix}/summary_cv_full_label_test_semantic_smell.csv", na_filter=False)
 }
 
