@@ -29,8 +29,8 @@ def get_paths():
         input_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_10_6"
         output_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_cv_loop"
     elif system_name == "Darwin":  # macOS
-        input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
-        output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
+        input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
+        output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_30_loop"
     elif system_name == "Windows":
         input_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_flink"
         output_directory = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_30_loop"
