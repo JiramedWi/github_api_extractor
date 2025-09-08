@@ -27,7 +27,7 @@ def get_paths():
 
     if system_name == "Linux":
         input_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result_10_6"
-        output_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_30_loop"
+        output_directory = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/train_cv_loop"
     elif system_name == "Darwin":  # macOS
         input_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink"
         output_directory = "/Users/Jumma/git_repo/github_api_extractor/resources/tsdetect/test_smell_flink/optuna_result"
@@ -40,7 +40,7 @@ def get_paths():
     return Path(input_directory), Path(output_directory)
 
 # Logging setup
-log_file = "C:/Users/CAMT/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/cv_predict_train_30_loop_v2.log"
+log_file = "/home/pee/repo/github_api_extractor/resources/tsdetect/test_smell_flink/latest_result/cv_predict_train_loop_v3.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s",
@@ -51,12 +51,12 @@ logging.basicConfig(
 )
 SCORING = ['precision_macro', 'recall_macro', 'f1_macro', 'roc_auc', 'accuracy']
 
-def train_cv_30_runs(dataset_name: str, dataset_path: Path, output_path: Path, n_runs: int = 30):
+def train_cv_loop_runs(dataset_name: str, dataset_path: Path, output_path: Path, n_runs: int = 20):
     logging.info(f"📂 Loading dataset: {dataset_path}")
 
-    output_dir = output_path / "cv_30_runs"
+    output_dir = output_path / "cv_runs"
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_file = output_dir / f"cv_30_loop_result_{dataset_name}.pkl"
+    output_file = output_dir / f"cv_loop_result_{dataset_name}.pkl"
 
     # === Load input dataset ===
     try:
@@ -116,7 +116,7 @@ def train_cv_30_runs(dataset_name: str, dataset_path: Path, output_path: Path, n
         params = data["best_params"]
         cv_metrics = []
 
-        logging.info(f"🔁 [{dataset_name}] 30x CV | Index {idx} | {data['combination']}")
+        logging.info(f"🔁 [{dataset_name}] 20x CV | Index {idx} | {data['combination']}")
 
         try:
             for run_idx in range(n_runs):
@@ -156,22 +156,22 @@ def train_cv_30_runs(dataset_name: str, dataset_path: Path, output_path: Path, n
 # Entry Point
 # ==========================
 if __name__ == "__main__":
-    logging.info("Starting 30 random trainings on datasets...")
+    logging.info("Starting 20 random trainings on datasets...")
     input_path, output_path = get_paths()
 
     dataset_files = [
-        # ("normal", input_path / "optuna_result_normal.pkl"),
-        # ("topic_model", input_path / "optuna_result_topic_model.pkl"),
-        # ("smote_poly_normal", input_path / "optuna_result_smote_poly_normal.pkl"),
-        # ("smote_prowsyn_normal", input_path / "optuna_result_smote_prowsyn_normal.pkl"),
-        # ("smote_poly_topic", input_path / "optuna_result_smote_poly_topic_model.pkl"),
+        ("normal", input_path / "optuna_result_normal.pkl"),
+        ("topic_model", input_path / "optuna_result_topic_model.pkl"),
+        ("smote_poly_normal", input_path / "optuna_result_smote_poly_normal.pkl"),
+        ("smote_prowsyn_normal", input_path / "optuna_result_smote_prowsyn_normal.pkl"),
+        ("smote_poly_topic", input_path / "optuna_result_smote_poly_topic_model.pkl"),
         ("smote_prowsyn_topic", input_path / "optuna_result_smote_prowsyn_topic_model.pkl")
     ]
 
     for dataset_name, file_path in dataset_files:
         # log information about the dataset being processed
         logging.info(f"Processing dataset: {dataset_name} from {file_path}")
-        train_cv_30_runs(
+        train_cv_loop_runs(
             dataset_name=dataset_name,
             dataset_path=file_path,
             output_path=output_path,
